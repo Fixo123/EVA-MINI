@@ -756,20 +756,3 @@ server.listen(PORT, () => {
     }
 });
 
-// Import the command
-const gcstatusCommand = require('./commands/gcstatus');
-
-// In your message handler
-if (command === 'gcstatus' || command === 'groupstatus' || command === 'togstatus') {
-    await gcstatusCommand(
-        sock, 
-        chatId, 
-        message, 
-        args, 
-        isPremium, 
-        m.isGroup, 
-        isAdmins, 
-        groupMetadata, 
-        prefix
-    );
-}
