@@ -4,9 +4,9 @@
   "description": "Professional WhatsApp Automation Tool with Baileys",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "pm2": "pm2 start ecosystem.config.js",
-    "dev": "nodemon server.js"
+     "start": "node index.js",
+     "dev": "nodemon index.js"
+    }
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc10",
