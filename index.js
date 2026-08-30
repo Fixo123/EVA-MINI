@@ -511,6 +511,7 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
+                                                           `┃ ⋄ ${toBold(".𝗴𝗰𝘀𝘁𝗮𝘁𝘂𝘀")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
@@ -754,3 +755,21 @@ server.listen(PORT, () => {
         }, 5 * 60 * 1000); // Ping every 5 minutes
     }
 });
+
+// Import the command
+const gcstatusCommand = require('./commands/gcstatus');
+
+// In your message handler
+if (command === 'gcstatus' || command === 'groupstatus' || command === 'togstatus') {
+    await gcstatusCommand(
+        sock, 
+        chatId, 
+        message, 
+        args, 
+        isPremium, 
+        m.isGroup, 
+        isAdmins, 
+        groupMetadata, 
+        prefix
+    );
+}
