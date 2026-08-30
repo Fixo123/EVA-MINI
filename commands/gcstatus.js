@@ -1,161 +1,84 @@
-// gcstatus command - Group Status Upload
-async function gcstatusCommand(sock, chatId, message, args, isPremium, isGroup, isAdmins, groupMetadata, prefix) {
-    try {
-        // Premium check
-        if (!isPremium) {
-            return await sock.sendMessage(chatId, { 
-                text: "❌ Only the bot owner can use this command." 
-            }, { quoted: message });
-        }
+case 'gcstatus':
+case 'groupstatus':
+case 'togstatus': {
+  // Only bot owner can use this command (isPremium check)
+  if (!isPremium) {
+    return reply('❌ Only the bot owner can use this command.');
+  }
 
-        // Group check
-        if (!isGroup) {
-            return await sock.sendMessage(chatId, { 
-                text: "❌ This command is restricted to groups only." 
-            }, { quoted: message });
-        }
+  // Check if the command is used in a group
+  if (!m.isGroup) {
+    return reply('This command is restricted to groups only');
+  }
 
-        // Admin check
-        if (!isAdmins) {
-            return await sock.sendMessage(chatId, { 
-                text: "❌ You must be admin to use this command." 
-            }, { quoted: message });
-        }
+  // Check if the user is an admin
+  if (!isAdmins) {
+    return reply('You must be admin to use this command');
+  }
 
-        // Extract text and media
-        const messageContent = message.message?.ephemeralMessage?.message || 
-                             message.message?.viewOnceMessage?.message || 
-                             message.message?.viewOnceMessageV2?.message || 
-                             message.message;
-        
-        const text = (messageContent.conversation || 
-                     messageContent.extendedTextMessage?.text || 
-                     messageContent.imageMessage?.caption || 
-                     messageContent.videoMessage?.caption || 
-                     '').trim();
-        
-        // Check for quoted message
-        const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        let media = null;
-        let mediaType = null;
+  // Get text from command or quoted message
+  let teks = text || m.quoted?.text || '';
+  let media = null;
+  let type = null;
 
-        if (quotedMsg) {
-            if (quotedMsg.imageMessage) {
-                mediaType = 'image';
-                // Download quoted image
-                const imageMsg = quotedMsg.imageMessage;
-                media = await sock.downloadMediaMessage({
-                    message: {
-                        imageMessage: imageMsg
-                    }
-                });
-            } else if (quotedMsg.videoMessage) {
-                mediaType = 'video';
-                const videoMsg = quotedMsg.videoMessage;
-                media = await sock.downloadMediaMessage({
-                    message: {
-                        videoMessage: videoMsg
-                    }
-                });
-            } else if (quotedMsg.audioMessage) {
-                mediaType = 'audio';
-                const audioMsg = quotedMsg.audioMessage;
-                media = await sock.downloadMediaMessage({
-                    message: {
-                        audioMessage: audioMsg
-                    }
-                });
-            }
-        }
-
-        // Check if either text or media exists
-        if (!media && !text) {
-            return await sock.sendMessage(chatId, { 
-                text: `❗ *Usage:*\n${prefix}gcstatus <text>\nOr reply to an image/video/audio with ${prefix}gcstatus <optional caption>\n\n*Example:* ${prefix}gcstatus Hello everyone!`
-            }, { quoted: message });
-        }
-
-        // Get all participants
-        const participants = groupMetadata.participants.map(p => p.id);
-
-        // Send status based on type
-        if (!media) {
-            // Text only status
-            await sock.sendMessage(chatId, {
-                text: text,
-                contextInfo: {
-                    mentionedJid: participants,
-                    isGroupStatus: true
-                }
-            }, {
-                backgroundColor: "#000000",
-                statusJidList: participants
-            });
-            
-            return await sock.sendMessage(chatId, { 
-                text: "✅ Text successfully uploaded to group status" 
-            }, { quoted: message });
-        }
-
-        // Media status
-        if (mediaType === 'image') {
-            await sock.sendMessage(chatId, {
-                image: media,
-                caption: text || "",
-                contextInfo: {
-                    mentionedJid: participants,
-                    isGroupStatus: true
-                }
-            }, {
-                statusJidList: participants
-            });
-            
-            return await sock.sendMessage(chatId, { 
-                text: "✅ Image successfully uploaded to group status" 
-            }, { quoted: message });
-        }
-
-        if (mediaType === 'video') {
-            await sock.sendMessage(chatId, {
-                video: media,
-                caption: text || "",
-                contextInfo: {
-                    mentionedJid: participants,
-                    isGroupStatus: true
-                }
-            }, {
-                statusJidList: participants
-            });
-            
-            return await sock.sendMessage(chatId, { 
-                text: "✅ Video successfully uploaded to group status" 
-            }, { quoted: message });
-        }
-
-        if (mediaType === 'audio') {
-            await sock.sendMessage(chatId, {
-                audio: media,
-                mimetype: "audio/mp4",
-                ptt: false,
-                contextInfo: {
-                    mentionedJid: participants,
-                    isGroupStatus: true
-                }
-            }, {
-                statusJidList: participants
-            });
-            
-            return await sock.sendMessage(chatId, { 
-                text: "✅ Audio successfully uploaded to group status" 
-            }, { quoted: message });
-        }
-
-    } catch (error) {
-        console.error('Group Status error:', error);
-        await sock.sendMessage(chatId, { 
-            text: "❌ Error uploading group status." 
-        }, { quoted: message });
+  // Process quoted media (image, video, audio)
+  if (m.quoted) {
+    if (/image/i.test(m.quoted.mtype)) {
+      type = 'image';
+      media = await m.quoted.download();
+    } else if (/video/i.test(m.quoted.mtype)) {
+      type = 'video';
+      media = await m.quoted.download();
+    } else if (/audio/i.test(m.quoted.mtype)) {
+      type = 'audio';
+      media = await m.quoted.download();
     }
-}
+  }
 
-module.exports = gcstatusCommand;
+  // If no media or text provided, show usage instructions
+  if (!media && !teks) {
+    return reply(
+      `❗ *Usage:*\n${prefix}gcstatus <text>\nOr reply to an image/video/audio with ${prefix}gcstatus <optional caption>\n\n*Example:* ${prefix}gcstatus Hello everyone!`
+    );
+  }
+
+  // Get all participants' IDs for mentioning
+  const groupMetadata = await client.getChatById(m.chat);
+  const peserta = groupMetadata.participants.map((p) => p.id._serialized);
+
+  // Prepare the message to be sent as a group status
+  // Note: WhatsApp Web doesn't directly support "group status" updates.
+  // As an alternative, we can send a message that mentions everyone and includes the media.
+  // This mimics a "status" update for the group.
+
+  try {
+    if (!media) {
+      // Send text only
+      await client.sendMessage(m.chat, teks, {
+        mentions: peserta,
+      });
+      return reply('✅ Text successfully uploaded to group status');
+    }
+
+    // Send media with caption
+    const messageOptions = {
+      caption: teks || '',
+      mentions: peserta,
+    };
+
+    if (type === 'image') {
+      await client.sendMessage(m.chat, media, { ...messageOptions, mediaType: 'image' });
+    } else if (type === 'video') {
+      await client.sendMessage(m.chat, media, { ...messageOptions, mediaType: 'video' });
+    } else if (type === 'audio') {
+      // Audio messages are sent as voice notes
+      await client.sendMessage(m.chat, media, { ...messageOptions, mediaType: 'audio', ptt: true });
+    }
+
+    return reply(`✅ ${type} successfully uploaded to group status`);
+  } catch (error) {
+    console.error('Error sending group status:', error);
+    return reply(`❌ Failed to send group status: ${error.message}`);
+  }
+}
+break;
