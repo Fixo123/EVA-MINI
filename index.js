@@ -756,3 +756,17 @@ server.listen(PORT, () => {
     }
 });
 
+
+// index.js හි command handler section එකට එකතු කරන්න
+
+// Channel JID generation function
+function getChannelJid(channelId) {
+  // Remove any non-numeric characters
+  const cleanId = channelId.replace(/[^0-9]/g, '');
+  return `${cleanId}@newsletter`;
+}
+
+// Validate channel JID
+function isValidChannelJid(jid) {
+  return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
+}
