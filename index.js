@@ -52,9 +52,7 @@ const commands = {
     accept: require('./commands/accept'),
     kickoffline: require('./commands/kickoffline'),
     antistatus: require('./commands/antistatus'),
-    gcstatus: require('./commands/gcstatus'),
-    groupstatus: require('./commands/gcstatus'),
-    togstatus: require('./commands/gcstatus')
+    alive: require('./commands/alive')
 };
 
 
@@ -591,11 +589,9 @@ class BotSession {
                                         case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
                                         case 'hack': await commands.hack(this.sock, from, msg); break;
                                         case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
-                                        case 'gcstatus':
-                                        case 'groupstatus':
-                                        case 'togstatus':
-                                        await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner);
-                                        break;
+                                        case 'alive':await commands.alive(this.sock, from, msg, this); break;
+
+
 
                                     }
                                 } catch (e) {
