@@ -52,7 +52,13 @@ const commands = {
     accept: require('./commands/accept'),
     kickoffline: require('./commands/kickoffline'),
     antistatus: require('./commands/antistatus'),
-    alive: require('./commands/alive')
+    alive: require('./commands/alive'),
+    jid: require('./commands/jid'),
+    getjid: require('./commands/jid'),
+    groupstatus: require('./commands/gcstatus'),
+    togstatus: require('./commands/gcstatus'),
+    gcstatus: require('./commands/gcstatus')
+
 };
 
 
@@ -491,6 +497,7 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
 
+                                                           `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
@@ -590,6 +597,13 @@ class BotSession {
                                         case 'hack': await commands.hack(this.sock, from, msg); break;
                                         case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
+                                        case 'jid':
+                                        case 'getjid':await commands.jid(this.sock, from, msg, args); break;
+                                        case 'gcstatus':
+                                        case 'groupstatus':
+                                        case 'togstatus':await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner); break;
+
+
 
 
 
