@@ -52,7 +52,9 @@ const commands = {
     accept: require('./commands/accept'),
     kickoffline: require('./commands/kickoffline'),
     antistatus: require('./commands/antistatus'),
-    gcstatus: require('./commands/gcstatus')
+    gcstatus: require('./commands/gcstatus'),
+    groupstatus: require('./commands/gcstatus'),
+    togstatus: require('./commands/gcstatus')
 };
 
 
