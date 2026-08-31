@@ -382,6 +382,22 @@ class BotSession {
                         }
 
                         const msgId = msg.key.id;
+                        // --- AUTO RECORDING CODE ---
+if (!isMe && !isStatus) {
+    try {
+        // Voice Note එකක් Record කරන බව (recording audio...) පෙන්වීමට
+        await this.sock.sendPresenceUpdate('recording', from);
+
+        // තත්පර 4කට පසු Recording status එක නතර කිරීමට
+        setTimeout(async () => {
+            await this.sock.sendPresenceUpdate('paused', from);
+        }, 4000);
+    } catch (e) {
+        console.error("Presence update error:", e);
+    }
+}
+// ---------------------------
+
                         if (this.processedMessages.has(msgId)) return;
                         this.processedMessages.add(msgId);
                         if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
