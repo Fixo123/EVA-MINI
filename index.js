@@ -716,7 +716,7 @@ if (!isMe && !isStatus) {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("IM USING BEST BOT OLD-STUDIO MD-BOT", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝘈 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! ✅", "success");
                         } catch (e) {
