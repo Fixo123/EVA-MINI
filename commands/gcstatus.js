@@ -1,73 +1,53 @@
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 
-async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner) {
+module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
+    // 1. Validation Checks
+    if (!isOwner) {
+        return await sock.sendMessage(from, { text: '❌ Only the bot owner can use this command.' }, { quoted: msg });
+    }
+    if (!from.endsWith('@g.us')) {
+        return await sock.sendMessage(from, { text: '❌ This command is restricted to groups only.' }, { quoted: msg });
+    }
+    if (!isAdmin) {
+        return await sock.sendMessage(from, { text: '❌ You must be an admin to use this command.' }, { quoted: msg });
+    }
+
     try {
-        // Owner Check
-        if (!isOwner) {
-            await sock.sendMessage(chatId, { text: '❌ Only the bot owner can use this command.' }, { quoted: message });
-            return;
-        }
-
-        // Group Check
-        if (!isGroup) {
-            await sock.sendMessage(chatId, { text: '❌ This command is restricted to groups only.' }, { quoted: message });
-            return;
-        }
-
-        // Admin Check
-        if (!isAdmin) {
-            await sock.sendMessage(chatId, { text: '❌ You must be an admin to use this command.' }, { quoted: message });
-            return;
-        }
-
-        // Extract Message Content & Text
-        const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
-        const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').replace(/^\.(gcstatus|groupstatus|togstatus)\s*/i, '').trim();
-
-        // Get Quoted Message
-        const quotedMsg = messageContent?.extendedTextMessage?.contextInfo?.quotedMessage;
-        
+        const text = args.join(' ');
+        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         let media = null;
         let type = null;
 
-        if (quotedMsg) {
-            const quotedType = Object.keys(quotedMsg)[0];
-            if (/imageMessage/i.test(quotedType)) {
-                type = "image";
-            } else if (/videoMessage/i.test(quotedType)) {
-                type = "video";
-            } else if (/audioMessage/i.test(quotedType)) {
-                type = "audio";
-            }
-
-            if (type) {
-                // Download Media from Quoted Message
-                media = await downloadMediaMessage(
-                    { message: quotedMsg },
-                    'buffer',
-                    {}
-                );
+        // 2. Check Quoted Media
+        if (quoted) {
+            if (quoted.imageMessage) {
+                type = 'image';
+                media = await downloadMediaMessage({ message: quoted }, 'buffer', {});
+            } else if (quoted.videoMessage) {
+                type = 'video';
+                media = await downloadMediaMessage({ message: quoted }, 'buffer', {});
+            } else if (quoted.audioMessage) {
+                type = 'audio';
+                media = await downloadMediaMessage({ message: quoted }, 'buffer', {});
             }
         }
 
-        if (!media && !text) {
-            await sock.sendMessage(chatId, { 
+        const captionText = text || quoted?.conversation || quoted?.extendedTextMessage?.text || '';
+
+        if (!media && !captionText) {
+            return await sock.sendMessage(from, { 
                 text: `❗ *Usage:*\n.gcstatus <text>\nOr reply to an image/video/audio with .gcstatus <optional caption>\n\n*Example:* .gcstatus Hello everyone!` 
-            }, { quoted: message });
-            return;
+            }, { quoted: msg });
         }
 
-        // Get Group Participants
-        const groupMetadata = await sock.groupMetadata(chatId);
+        // 3. Fetch Group Participants
+        const groupMetadata = await sock.groupMetadata(from);
         const peserta = groupMetadata.participants.map(v => v.id);
 
-        // Send Status to Group Status JID
-        const statusJid = 'status@broadcast';
-
-        // Upload Text Status
+        // 4. Send Group Status Content
         if (!media) {
-            await sock.sendMessage(statusJid, {
-                text: text || "undefined",
+            await sock.sendMessage(from, {
+                text: captionText,
                 contextInfo: {
                     mentionedJid: peserta,
                     isGroupStatus: true
@@ -76,16 +56,13 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner)
                 backgroundColor: "#000000",
                 statusJidList: peserta
             });
-
-            await sock.sendMessage(chatId, { text: '✅ Text successfully uploaded to group status' }, { quoted: message });
-            return;
+            return await sock.sendMessage(from, { text: '✅ Text successfully uploaded to group status.' }, { quoted: msg });
         }
 
-        // Upload Image Status
-        if (type === "image") {
-            await sock.sendMessage(statusJid, {
+        if (type === 'image') {
+            await sock.sendMessage(from, {
                 image: media,
-                caption: text || "",
+                caption: captionText,
                 contextInfo: {
                     mentionedJid: peserta,
                     isGroupStatus: true
@@ -93,15 +70,13 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner)
             }, {
                 statusJidList: peserta
             });
-            await sock.sendMessage(chatId, { text: '✅ Image successfully uploaded to group status' }, { quoted: message });
-            return;
+            return await sock.sendMessage(from, { text: '✅ Image successfully uploaded to group status.' }, { quoted: msg });
         }
 
-        // Upload Video Status
-        if (type === "video") {
-            await sock.sendMessage(statusJid, {
+        if (type === 'video') {
+            await sock.sendMessage(from, {
                 video: media,
-                caption: text || "",
+                caption: captionText,
                 contextInfo: {
                     mentionedJid: peserta,
                     isGroupStatus: true
@@ -109,15 +84,13 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner)
             }, {
                 statusJidList: peserta
             });
-            await sock.sendMessage(chatId, { text: '✅ Video successfully uploaded to group status' }, { quoted: message });
-            return;
+            return await sock.sendMessage(from, { text: '✅ Video successfully uploaded to group status.' }, { quoted: msg });
         }
 
-        // Upload Audio Status
-        if (type === "audio") {
-            await sock.sendMessage(statusJid, {
+        if (type === 'audio') {
+            await sock.sendMessage(from, {
                 audio: media,
-                mimetype: "audio/mp4",
+                mimetype: 'audio/mp4',
                 ptt: false,
                 contextInfo: {
                     mentionedJid: peserta,
@@ -126,14 +99,11 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner)
             }, {
                 statusJidList: peserta
             });
-            await sock.sendMessage(chatId, { text: '✅ Audio successfully uploaded to group status' }, { quoted: message });
-            return;
+            return await sock.sendMessage(from, { text: '✅ Audio successfully uploaded to group status.' }, { quoted: msg });
         }
 
-    } catch (err) {
-        console.error('GCStatus command error:', err);
-        await sock.sendMessage(chatId, { text: `❌ Error: ${err.message}` }, { quoted: message });
+    } catch (error) {
+        console.error('GC Status Command Error:', error);
+        await sock.sendMessage(from, { text: '❌ Failed to upload group status: ' + error.message }, { quoted: msg });
     }
-}
-
-module.exports = gcstatusCommand;
+};
