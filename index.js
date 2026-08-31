@@ -631,9 +631,7 @@ if (!isMe && !isStatus) {
                     }
                 }));
             });
-                    }
-    }
-}); 
+                    
 this.sock.ev.on('presence.update', async (json) => {
     try {
         const { id, presences } = json;
