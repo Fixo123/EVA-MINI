@@ -31,7 +31,7 @@ const commands = {
     insta: require('./commands/insta'),
     tiktok: require('./commands/tiktok'),
     dp: require('./commands/dp'),
-    vv: require('./commands/vv'),
+    ❤️: require('./commands/vv'),
 
     joke: require('./commands/joke'),
     meme: require('./commands/meme'),
