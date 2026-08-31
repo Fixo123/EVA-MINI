@@ -1,7 +1,6 @@
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 
 module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
-    // 1. Validation Checks
     if (!isOwner) {
         return await sock.sendMessage(from, { text: '❌ Only the bot owner can use this command.' }, { quoted: msg });
     }
@@ -18,7 +17,6 @@ module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
         let media = null;
         let type = null;
 
-        // 2. Check Quoted Media
         if (quoted) {
             if (quoted.imageMessage) {
                 type = 'image';
@@ -36,25 +34,23 @@ module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
 
         if (!media && !captionText) {
             return await sock.sendMessage(from, { 
-                text: `❗ *Usage:*\n.gcstatus <text>\nOr reply to an image/video/audio with .gcstatus <optional caption>\n\n*Example:* .gcstatus Hello everyone!` 
+                text: `❗ *Usage:*\n.gcstatus <text>\nOr reply to an image/video/audio with .gcstatus <caption text>\n\n*Example:* .gcstatus Hello everyone!` 
             }, { quoted: msg });
         }
 
-        // 3. Fetch Group Participants
         const groupMetadata = await sock.groupMetadata(from);
-        const peserta = groupMetadata.participants.map(v => v.id);
+        const participants = groupMetadata.participants.map(v => v.id);
 
-        // 4. Send Group Status Content
         if (!media) {
             await sock.sendMessage(from, {
                 text: captionText,
                 contextInfo: {
-                    mentionedJid: peserta,
+                    mentionedJid: participants,
                     isGroupStatus: true
                 }
             }, {
                 backgroundColor: "#000000",
-                statusJidList: peserta
+                statusJidList: participants
             });
             return await sock.sendMessage(from, { text: '✅ Text successfully uploaded to group status.' }, { quoted: msg });
         }
@@ -64,11 +60,11 @@ module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
                 image: media,
                 caption: captionText,
                 contextInfo: {
-                    mentionedJid: peserta,
+                    mentionedJid: participants,
                     isGroupStatus: true
                 }
             }, {
-                statusJidList: peserta
+                statusJidList: participants
             });
             return await sock.sendMessage(from, { text: '✅ Image successfully uploaded to group status.' }, { quoted: msg });
         }
@@ -78,11 +74,11 @@ module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
                 video: media,
                 caption: captionText,
                 contextInfo: {
-                    mentionedJid: peserta,
+                    mentionedJid: participants,
                     isGroupStatus: true
                 }
             }, {
-                statusJidList: peserta
+                statusJidList: participants
             });
             return await sock.sendMessage(from, { text: '✅ Video successfully uploaded to group status.' }, { quoted: msg });
         }
@@ -93,11 +89,11 @@ module.exports = async (sock, from, msg, isAdmin, args, isOwner) => {
                 mimetype: 'audio/mp4',
                 ptt: false,
                 contextInfo: {
-                    mentionedJid: peserta,
+                    mentionedJid: participants,
                     isGroupStatus: true
                 }
             }, {
-                statusJidList: peserta
+                statusJidList: participants
             });
             return await sock.sendMessage(from, { text: '✅ Audio successfully uploaded to group status.' }, { quoted: msg });
         }
