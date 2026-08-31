@@ -532,8 +532,8 @@ class BotSession {
                                                            `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
                                                            `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
                                                            `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
-                                                           `🔗 ${toBold("𝗖𝗛𝗔𝗡𝗡𝗘𝗟:")}\n` +
-                                                           `> *https://t.me/DARK_DEV_OFC*\n` +
+                                                           `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
+                                                           `> *https://eva-mini.onrender.com/*\n` +
                                                            `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
                                             try {
                                                 await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
