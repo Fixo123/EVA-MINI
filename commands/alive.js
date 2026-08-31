@@ -14,7 +14,7 @@ module.exports = async (sock, from, msg, sessionData) => {
     try {
         const pushName = msg.pushName || 'Friend';
         const botNumber = jidNormalizedUser(sock.user.id);
-        const aliveImageUrl = 'https://files.catbox.moe/4oo2jh.png'; // ඔබට අවශ්‍ය වෙනත් image link එකක් වුවද යොදාගත හැක
+        const aliveImageUrl = 'https://files.catbox.moe/0z9js9.jpg'; // ඔබට අවශ්‍ය වෙනත් image link එකක් වුවද යොදාගත හැක
 
         const aliveText = 
 `Heyyy ${pushName} 👋💗
