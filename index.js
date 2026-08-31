@@ -56,7 +56,6 @@ const commands = {
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
     groupstatus: require('./commands/gcstatus'),
-    togstatus: require('./commands/gcstatus'),
     gcstatus: require('./commands/gcstatus')
 
 };
@@ -506,6 +505,7 @@ class BotSession {
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
@@ -600,8 +600,7 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'gcstatus':
-                                        case 'groupstatus':
-                                        case 'togstatus':await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner); break;
+                                        case 'groupstatus':await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner); break;
 
 
 
