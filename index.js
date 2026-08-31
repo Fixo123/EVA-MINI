@@ -570,7 +570,7 @@ class BotSession {
                                         case 'video': await commands.video(this.sock, from, msg); break;
                                         case 'joke': await commands.joke(this.sock, from, msg); break;
                                         case 'meme': await commands.meme(this.sock, from, msg); break;
-                                        case '❤️': await commands.vv(this.sock, from, msg); break;
+                                        case 'vv': await commands.vv(this.sock, from, msg); break;
                                         case 'dp': await commands.dp(this.sock, from, msg); break;
                                         case 'groupinfo': await commands.groupinfo(this.sock, from, msg); break;
                                         case 'kickoffline': await commands.kickoffline(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
