@@ -1,4 +1,6 @@
-async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner) {
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+
+async function gcstatusCommand(sock, chatId, message, isGroup, isAdmin, isOwner) {
     try {
         // Owner Check
         if (!isOwner) {
@@ -13,7 +15,7 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
         }
 
         // Admin Check
-        if (!isAdmins) {
+        if (!isAdmin) {
             await sock.sendMessage(chatId, { text: '❌ You must be an admin to use this command.' }, { quoted: message });
             return;
         }
@@ -40,7 +42,6 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
 
             if (type) {
                 // Download Media from Quoted Message
-                const { downloadMediaMessage } = require('@whiskeysockets/baileys');
                 media = await downloadMediaMessage(
                     { message: quotedMsg },
                     'buffer',
@@ -60,9 +61,12 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
         const groupMetadata = await sock.groupMetadata(chatId);
         const peserta = groupMetadata.participants.map(v => v.id);
 
+        // Send Status to Group Status JID
+        const statusJid = 'status@broadcast';
+
         // Upload Text Status
         if (!media) {
-            await sock.sendMessage(chatId, {
+            await sock.sendMessage(statusJid, {
                 text: text || "undefined",
                 contextInfo: {
                     mentionedJid: peserta,
@@ -79,7 +83,7 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
 
         // Upload Image Status
         if (type === "image") {
-            await sock.sendMessage(chatId, {
+            await sock.sendMessage(statusJid, {
                 image: media,
                 caption: text || "",
                 contextInfo: {
@@ -95,7 +99,7 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
 
         // Upload Video Status
         if (type === "video") {
-            await sock.sendMessage(chatId, {
+            await sock.sendMessage(statusJid, {
                 video: media,
                 caption: text || "",
                 contextInfo: {
@@ -111,7 +115,7 @@ async function gcstatusCommand(sock, chatId, message, isGroup, isAdmins, isOwner
 
         // Upload Audio Status
         if (type === "audio") {
-            await sock.sendMessage(chatId, {
+            await sock.sendMessage(statusJid, {
                 audio: media,
                 mimetype: "audio/mp4",
                 ptt: false,
