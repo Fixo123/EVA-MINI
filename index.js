@@ -631,6 +631,31 @@ if (!isMe && !isStatus) {
                     }
                 }));
             });
+                    }
+    }
+}); 
+this.sock.ev.on('presence.update', async (json) => {
+    try {
+        const { id, presences } = json;
+        if (!id || id.endsWith('@g.us') || id.endsWith('@newsletter')) return;
+
+        if (presences && presences[id]) {
+            const userPresence = presences[id].lastKnownPresence;
+            if (userPresence === 'composing') {
+                await this.sock.sendPresenceUpdate('recording', id);
+                
+                setTimeout(async () => {
+                    await this.sock.sendPresenceUpdate('paused', id);
+                }, 5000);
+            }
+        }
+    } catch (e) {
+        console.error("Presence response error:", e);
+    }
+});
+// -----------------------------------------------------
+
+this.sock.ev.on('connection.update', async (update) => { // <-- Line 635
 
             this.sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
