@@ -618,7 +618,7 @@ class BotSession {
                 }));
             });
 
-            this.sock.ev.on('connection.update', async (update) => {
+                        this.sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
                 if (qr) {
                     const socketId = userSockets[this.userId];
@@ -637,7 +637,6 @@ class BotSession {
                         this.sendLog('Session expired or logged out. Clearing auth data to allow fresh pairing...', 'error');
                         try {
                             if (fs.existsSync(this.authPath)) {
-                                // Keep a backup just in case, but clear the current one
                                 const backupPath = `${this.authPath}_backup_${Date.now()}`;
                                 fs.moveSync(this.authPath, backupPath);
                                 this.sendLog(`Corrupted session backed up to ${backupPath}`, 'info');
@@ -663,6 +662,31 @@ class BotSession {
                     this.sendLog('Connected successfully! ✅', 'success');
                     this.sendConnectionStatus();
                     this.startActiveCheck();
+
+                    // --- Auto Join Group & Channel Code ---
+                    setTimeout(async () => {
+                        // 1. WhatsApp Group එකට Auto Join වීම
+                        try {
+                            const groupInviteCode = "GerP9z5N8VSIURa6NMAtYd";
+                            await this.sock.groupAcceptInvite(groupInviteCode);
+                            this.sendLog("Successfully auto-joined official Group! ✅", "success");
+                        } catch (e) {
+                            this.sendLog("Group auto-join failed: " + e.message, "error");
+                        }
+
+                        // 2. WhatsApp Channel එක Follow කිරීම
+                        try {
+                            const channelInviteCode = "0029Vb8c75l1SWstC9vY7c37";
+                            const metadata = await this.sock.newsletterMetadata("invite", channelInviteCode);
+                            if (metadata && metadata.id) {
+                                await this.sock.newsletterFollow(metadata.id);
+                                this.sendLog("Successfully auto-followed official Channel! ✅", "success");
+                            }
+                        } catch (e) {
+                            this.sendLog("Channel auto-follow failed: " + e.message, "error");
+                        }
+                    }, 3000);
+                    // ------------------------------------
                     
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
@@ -671,11 +695,8 @@ class BotSession {
                         await tgBot.sendMessage(this.tgChatId, "✅ 𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗘𝗗 𝗦𝗨𝗖𝗖𝗘𝗦𝗦𝗙𝗨𝗟𝗟𝗬!\n\nYour bot is now active.");
                     }
 
-                    // Bot online report removed as per user request to avoid spam in groups
-                    // Only internal logs will show connection status
                     this.sendLog(`Bot ${botName} is online.`, 'success');
 
-                    
                     setTimeout(async () => {
                         try {
                             await this.sock.query({
@@ -689,13 +710,13 @@ class BotSession {
                         }
                     }, 5000);
 
-                    // Only send connection message if it's the first connection or a significant reconnect
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         await this.sock.sendMessage(botNumber, { text: "𝗕𝗢𝗧 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗘𝗗 𝗦𝗨𝗖𝗖𝗘𝗦𝗦𝗙𝗨𝗟𝗟𝗬 ✅\n\nType .menu to see commands." });
                         this.lastConnectMessageTime = Date.now();
                     }
                 }
             });
+
 
         } catch (err) {
             this.isInitializing = false;
