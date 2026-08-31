@@ -600,8 +600,7 @@ class BotSession {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                        case 'gcstatus':
-                                        case 'groupstatus':await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner); break;
+                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
                                             
 
 
