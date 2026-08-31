@@ -55,7 +55,7 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    bugCommand: require('./commands/bug')
+    bug: require('./commands/bug')
 };
 
 
@@ -532,7 +532,7 @@ if (!isMe && !isStatus) {
                                                            `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold(",,𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
+                                                           `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
@@ -615,10 +615,7 @@ if (!isMe && !isStatus) {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                        case 'gcstatus':
-                                        case 'groupstatus':await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner); break;
-                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
-
+                                            case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
 
 
 
