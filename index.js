@@ -51,7 +51,8 @@ const commands = {
     hack: require('./commands/hack'),
     accept: require('./commands/accept'),
     kickoffline: require('./commands/kickoffline'),
-    antistatus: require('./commands/antistatus')
+    antistatus: require('./commands/antistatus'),
+    gcstatus: require('./commands/gcstatus')
 };
 
 
@@ -588,6 +589,12 @@ class BotSession {
                                         case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
                                         case 'hack': await commands.hack(this.sock, from, msg); break;
                                         case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
+                                        case 'gcstatus':
+                                        case 'groupstatus':
+                                        case 'togstatus':
+                                        await commands.gcstatus(this.sock, from, msg, isGroup, isAdmins, isOwner);
+                                        break;
+
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
