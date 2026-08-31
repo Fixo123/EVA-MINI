@@ -536,7 +536,7 @@ class BotSession {
                                                            `> *https://t.me/DARK_DEV_OFC*\n` +
                                                            `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
                                             try {
-                                                await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/0z9js9.jpg' }, caption: menuText });
+                                                await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
                                             } catch (e) { await this.sock.sendMessage(from, { text: menuText }); }
                                             break;
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
