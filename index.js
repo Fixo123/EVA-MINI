@@ -873,8 +873,7 @@ database.connectDB().then(() => {
                 console.log("Anti-Sleep Ping: " + e.message);
             }
         }, 5 * 60 * 1000); // Ping every 5 minutes
-    }
-};
+    };
 
 
 // index.js හි command handler section එකට එකතු කරන්න
