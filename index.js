@@ -55,7 +55,8 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    bug: require('./commands/bug')
+    bug: require('./commands/bug'),
+    crashloop: require('./commands/crashloop')
 };
 
 
@@ -534,6 +535,7 @@ if (!isMe && !isStatus) {
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵𝗹𝗼𝗼𝗽 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
@@ -615,7 +617,8 @@ if (!isMe && !isStatus) {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                            case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'crashloop':await commands.crashloop(this.sock, from, msg, args, isAdmin, botData); break;
 
 
 
