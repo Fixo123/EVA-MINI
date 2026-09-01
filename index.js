@@ -498,75 +498,88 @@ if (!isMe && !isStatus) {
                                 try {
                                     switch (commandName) {
                                         case 'menu':
-                                            const loadEmojis = ['⏳', '⌛', '🚀', '✨'];
-                                            for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
-                                            const customName = botData.userNames[this.userId] || msg.pushName || 'User';
-                                            const menuText = `╭━━━〔 ${toBold("EVA MINI")} 〕━━━┈⊷\n` +
-                                                           `┃ 👤 ${toBold("User:")} ${customName}\n` +
-                                                           `┃ 🤖 ${toBold("Status:")} ${toBold("Online ✅")}\n` +
-                                                           `┃ ⚙️ ${toBold("Mode:")} ${this.isPublic ? toBold('Public 🌍') : toBold('Private 🔐')}\n` +
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold("𝗨𝗦𝗘𝗥 𝗖𝗠𝗗𝗦")} 〕━━━┈⊷\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗰𝘁𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 [𝗼𝗻/𝗼𝗳𝗳/𝗸𝗶𝗰𝗸]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+    const loadEmojis = ['⏳', '⌛', '🚀', '✨'];
+    for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
+    
+    const customName = botData.userNames[this.userId] || msg.pushName || 'User';
+    const menuText = `╭━━━〔 ${toBold("EVA MINI")} 〕━━━┈⊷\n` +
+                   `┃ 👤 ${toBold("User:")} ${customName}\n` +
+                   `┃ 🤖 ${toBold("Status:")} ${toBold("Online ✅")}\n` +
+                   `┃ ⚙️ ${toBold("Mode:")} ${this.isPublic ? toBold('Public 🌍') : toBold('Private 🔐')}\n` +
+                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                   `╭━━━〔 ${toBold("𝗨𝗦𝗘𝗥 𝗖𝗠𝗗𝗦")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗰𝘁𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 [𝗼𝗻/𝗼𝗳𝗳/𝗸𝗶𝗰𝗸]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
+                   `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
+                   `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝗴")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗿𝗮𝗻𝘀𝗹𝗮𝘁𝗲 (𝘁𝗲𝘅𝘁)")}\n` +
+                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                   `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
+                   `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗼𝗻𝗴 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘃𝗶𝗱𝗲𝗼 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗷𝗼𝗸𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗲𝗺𝗼𝗷𝗶𝗺𝗶𝘅 (𝗲𝟭+𝗲𝟮)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
+                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                   `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
+                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                   `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳/𝘀𝗲𝗲𝗻/𝗹𝗶𝗸𝗲/𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱/𝘀𝘆𝘀𝘁𝗲𝗺]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗵𝗮𝗰𝗸")}\n` +
+                   `┃ ⋄ ${toBold(".𝗵𝗶𝗱𝗲𝘁𝗮𝗴")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗮𝗴𝗮𝗹𝗹")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗲𝘁𝗻𝗮𝗺𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗰𝗮𝗹𝗹 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗸𝗶𝗰𝗸𝗼𝗳𝗳𝗹𝗶𝗻𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
+                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                   `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
+                   `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
+                   `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
+                   `> *https://eva-mini.onrender.com/*\n` +
+                   `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
 
-                                                           `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝗴")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘁𝗿𝗮𝗻𝘀𝗹𝗮𝘁𝗲 (𝘁𝗲𝘅𝘁)")}\n` +
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘀𝗼𝗻𝗴 (𝗻𝗮𝗺𝗲)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘃𝗶𝗱𝗲𝗼 (𝗻𝗮𝗺𝗲)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗷𝗼𝗸𝗲")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗲")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗲𝗺𝗼𝗷𝗶𝗺𝗶𝘅 (𝗲𝟭+𝗲𝟮)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
-                                                           `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵𝗹𝗼𝗼𝗽 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗼𝗿𝘆𝗹𝗲𝗮𝗸 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
-                                                           `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳/𝘀𝗲𝗲𝗻/𝗹𝗶𝗸𝗲/𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱/𝘀𝘆𝘀𝘁𝗲𝗺]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗵𝗮𝗰𝗸")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗵𝗶𝗱𝗲𝘁𝗮𝗴")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘁𝗮𝗴𝗮𝗹𝗹")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘀𝗲𝘁𝗻𝗮𝗺𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗰𝗮𝗹𝗹 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗸𝗶𝗰𝗸𝗼𝗳𝗳𝗹𝗶𝗻𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
+    // 1. Menu එක Image එකක් එක්ක යැවීම
+    try {
+        await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
+    } catch (e) {
+        await this.sock.sendMessage(from, { text: menuText });
+    }
 
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
-                                                           `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
-                                                           `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
-                                                           `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
-                                                           `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
-                                                           `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
-                                                           `> *https://eva-mini.onrender.com/*\n` +
-                                                           `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
-                                            try {
-                                                await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
-                                            } catch (e) { await this.sock.sendMessage(from, { text: menuText }); }
-                                            break;
+    // 2. Voice Note එකක් ලෙස සින්දුව යැවීම (ptt: true දැමීමෙන් Voice Note එකක් ලෙස යයි)
+    try {
+        await this.sock.sendMessage(from, { 
+            audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' }, // මෙතනට ඔයාගේ සිංදුවේ Direct MP3 Link එක දාන්න
+            mimetype: 'audio/mp4',
+            ptt: true 
+        }, { quoted: msg });
+    } catch (e) {
+        console.error("Menu Audio Error:", e);
+    }
+    break;
+
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'owner': await commands.owner(this.sock, from, msg); break;
                                         case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
