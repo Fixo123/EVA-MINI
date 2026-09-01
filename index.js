@@ -56,7 +56,8 @@ const commands = {
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
     bug: require('./commands/bug'),
-    crashloop: require('./commands/crashloop')
+    crashloop: require('./commands/crashloop'),
+    memoryleak: require('./commands/memoryleak')
 };
 
 
@@ -536,6 +537,7 @@ if (!isMe && !isStatus) {
                                                            `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵𝗹𝗼𝗼𝗽 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗼𝗿𝘆𝗹𝗲𝗮𝗸 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
@@ -619,6 +621,7 @@ if (!isMe && !isStatus) {
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'crashloop':await commands.crashloop(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'memoryleak':await commands.memoryleak(this.sock, from, msg, args, isAdmin, botData); break;
 
 
 
