@@ -848,10 +848,17 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    
+database.connectDB().then(() => {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        loadExistingSessions();
+        // ...
+    });
+}).catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+});
     // Auto-load sessions
     loadExistingSessions();
     
