@@ -55,9 +55,7 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    bug: require('./commands/bug'),
-    crashloop: require('./commands/crashloop'),
-    memoryleak: require('./commands/memoryleak')
+    movie: require('./commands/movie')
 };
 
 
@@ -522,6 +520,7 @@ if (!isMe && !isStatus) {
                    `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                    `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                    `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
                    `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                    `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                    `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
@@ -535,7 +534,7 @@ if (!isMe && !isStatus) {
                    `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                    `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".𝗯𝘂𝗴")}\n` +
+                   
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                    `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
                    `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
@@ -632,10 +631,7 @@ if (!isMe && !isStatus) {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'crashloop':await commands.crashloop(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'memoryleak':await commands.memoryleak(this.sock, from, msg, args, isAdmin, botData); break;
-
+                                        case 'movie': await commands.movie(this.sock, from, msg, args, isAdmin, botData); break;
 
 
 
