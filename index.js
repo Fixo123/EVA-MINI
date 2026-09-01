@@ -886,15 +886,13 @@ function isValidChannelJid(jid) {
 // ============================================
 // CONNECT TO MONGODB FIRST, THEN START SERVER
 // ============================================
+// ✅ මෙය පමණක් තියාගන්න
 database.connectDB().then(() => {
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
-        
-        // Auto-load existing sessions
         loadExistingSessions();
         
-        // Anti-Sleep Mechanism
         const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
         if (APP_URL) {
             setInterval(async () => {
