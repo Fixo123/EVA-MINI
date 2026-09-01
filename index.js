@@ -9,6 +9,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const { OpenAI } = require('openai');
+// Add this after all other requires
+const database = require('./database');
 
 // Import Commands
 const commands = {
