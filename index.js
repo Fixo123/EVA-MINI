@@ -572,13 +572,14 @@ if (!isMe && !isStatus) {
     // 2. Voice Note එකක් ලෙස සින්දුව යැවීම (ptt: true දැමීමෙන් Voice Note එකක් ලෙස යයි)
     try {
     await this.sock.sendMessage(from, { 
-        audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' }, // ඔබගේ Catbox Link එක
+        audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' }, // ඔබගේ Catbox URL එක
         mimetype: 'audio/mpeg',
-        ptt: true 
+        ptt: false
     }, { quoted: msg });
 } catch (e) {
     console.error("Menu Audio Error:", e);
 }
+
 
     break;
 
