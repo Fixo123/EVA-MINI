@@ -10,6 +10,17 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const P = require('pino');
 const { OpenAI } = require('openai');
 
+// MongoDB Database Helpers Import කිරීම
+const { 
+    connectDB, 
+    saveSessionToMongoDB, 
+    getSessionFromMongoDB, 
+    deleteSessionFromMongoDB 
+} = require('./lib/database');
+
+// MongoDB Database එක Connect කිරීම
+connectDB();
+
 // Import Commands
 const commands = {
     song: require('./commands/song'),
@@ -144,7 +155,7 @@ const sessions = {};
 const userSockets = {}; 
 const messageLogs = {}; 
 
-// Load existing sessions on startup
+// Load existing sessions on startup (MongoDB Auto Restore එකතු කර ඇත)
 async function loadExistingSessions() {
     try {
         const authDirs = await fs.readdir(AUTH_DIR);
@@ -153,11 +164,21 @@ async function loadExistingSessions() {
             const stats = await fs.stat(authPath);
             if (stats.isDirectory()) {
                 const credsFile = path.join(authPath, 'creds.json');
+                
+                // Local File එක නැතොත් MongoDB එකෙන් Restore කිරීම
+                if (!fs.existsSync(credsFile)) {
+                    const mongoSession = await getSessionFromMongoDB(userId);
+                    if (mongoSession) {
+                        fs.ensureDirSync(authPath);
+                        fs.writeJsonSync(credsFile, mongoSession);
+                        console.log(`[MongoDB] Restored session from DB for: ${userId}`);
+                    }
+                }
+
                 if (fs.existsSync(credsFile)) {
                     console.log(`[System] Found existing session for: ${userId}. Initializing...`);
                     if (!sessions[userId]) {
                         sessions[userId] = new BotSession(userId);
-                        // Start initialization without a pairing number (it will use existing creds)
                         sessions[userId].initialize().catch(err => {
                             console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
                         });
@@ -202,8 +223,6 @@ class BotSession {
         console.log(`[${this.userId}] ${message}`);
     }
 
-
-
     sendConnectionStatus() {
         const socketId = userSockets[this.userId];
         if (socketId) {
@@ -235,8 +254,6 @@ class BotSession {
             if (this.isConnected && this.sock?.user) {
                 try {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
-                    // Send keep-alive message once per hour (60 minutes) to own DM only
-                    // This message is only sent to the bot's own number as requested
                     await this.sock.sendMessage(botNumber, { 
                         text: "𝗘𝗩𝗔 𝗠𝗜𝗡𝗜-𝗕𝗢𝗧 𝗜𝗦 𝗢𝗡𝗟𝗜𝗡𝗘 🚀\n\n_24/7 Active System Working..._" 
                     });
@@ -256,6 +273,18 @@ class BotSession {
         this.isInitializing = true;
         try {
             const { version } = await fetchLatestBaileysVersion();
+
+            // Check & Restore Auth Credentials from MongoDB
+            fs.ensureDirSync(this.authPath);
+            const credsFile = path.join(this.authPath, 'creds.json');
+            if (!fs.existsSync(credsFile)) {
+                const mongoCreds = await getSessionFromMongoDB(this.userId);
+                if (mongoCreds) {
+                    fs.writeJsonSync(credsFile, mongoCreds);
+                    this.sendLog(`[MongoDB] Restored session credentials for ${this.userId}`, 'success');
+                }
+            }
+
             const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
             
             this.sock = makeWASocket({
@@ -273,7 +302,7 @@ class BotSession {
                 keepAliveIntervalMs: 30000,
                 connectTimeoutMs: 60000,
                 defaultQueryTimeoutMs: 60000,
-                emitOwnEvents: true, // Needed for some state sync
+                emitOwnEvents: true,
                 retryRequestDelayMs: 5000,
                 maxMsgRetryCount: 5,
                 linkPreviewImageThumbnailWidth: 192,
@@ -317,7 +346,6 @@ class BotSession {
                         code = code?.match(/.{1,4}/g)?.join("-") || code;
                         this.sendLog(`🔑 Pairing Code: ${code}`, 'success');
                         
-                        // Send to Telegram if chat ID exists
                         if (this.tgChatId) {
                             await tgBot.sendMessage(this.tgChatId, "🔑 𝗬𝗢𝗨𝗥 𝗣𝗔𝗜𝗥𝗜𝗡𝗚 𝗖𝗢𝗗𝗘: " + code + "\n\n_Enter this code in your WhatsApp to connect._");
                         }
@@ -333,7 +361,16 @@ class BotSession {
                 }
             }
 
-            this.sock.ev.on('creds.update', saveCreds);
+            // Save creds to Local File System and sync to MongoDB
+            this.sock.ev.on('creds.update', async () => {
+                await saveCreds();
+                try {
+                    const credsData = fs.readJsonSync(path.join(this.authPath, 'creds.json'));
+                    await saveSessionToMongoDB(this.userId, credsData);
+                } catch (e) {
+                    console.error("Failed to sync creds to MongoDB:", e.message);
+                }
+            });
 
             this.sock.ev.on('call', async (calls) => {
                 if (botData.antiCall[this.userId]) {
@@ -348,13 +385,10 @@ class BotSession {
                 }
             });
 
-
-
             this.sock.ev.on('messages.upsert', async (m) => {
                 if (m.type !== 'notify') return;
                 
                 await Promise.all(m.messages.map(async (msg) => {
-                    // Check for decryption errors
                     if (msg.messageStubType === 1 || msg.messageStubType === 2) {
                         this.sendLog('Received an undecryptable message. This might be due to a session conflict.', 'warning');
                     }
@@ -371,7 +405,6 @@ class BotSession {
                         let type = Object.keys(messageContent)[0];
                         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
 
-                        // Handle Autoread, Autotyping, Autorecording
                         if (!isMe && !isStatus) {
                             await handleAutoread(this.sock, msg);
                             await storeMessage(msg);
@@ -383,27 +416,24 @@ class BotSession {
                         }
 
                         const msgId = msg.key.id;
-                        // --- AUTO RECORDING CODE ---
-if (!isMe && !isStatus) {
-    try {
-        // Voice Note එකක් Record කරන බව (recording audio...) පෙන්වීමට
-        await this.sock.sendPresenceUpdate('recording', from);
 
-        // තත්පර 4කට පසු Recording status එක නතර කිරීමට
-        setTimeout(async () => {
-            await this.sock.sendPresenceUpdate('paused', from);
-        }, 4000);
-    } catch (e) {
-        console.error("Presence update error:", e);
-    }
-}
-// ---------------------------
+                        // --- AUTO RECORDING CODE ---
+                        if (!isMe && !isStatus) {
+                            try {
+                                await this.sock.sendPresenceUpdate('recording', from);
+
+                                setTimeout(async () => {
+                                    await this.sock.sendPresenceUpdate('paused', from);
+                                }, 4000);
+                            } catch (e) {
+                                console.error("Presence update error:", e);
+                            }
+                        }
+                        // ---------------------------
 
                         if (this.processedMessages.has(msgId)) return;
                         this.processedMessages.add(msgId);
                         if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
-
-
 
                         if (!isStatus) {
                             let logEntry = { text, type };
@@ -468,7 +498,6 @@ if (!isMe && !isStatus) {
                                            msg.message?.viewOnceMessageV2Extension ||
                                            (text && (text.includes('whatsapp.com/channel/') || text.includes('status@broadcast')));
                             
-                            // Check if it's a status share (forwarded status or status link)
                             if (msg.message?.forwardingScore > 0 || isStatus) {
                                 try {
                                     await this.sock.sendMessage(from, { delete: msg.key });
@@ -497,91 +526,87 @@ if (!isMe && !isStatus) {
                                 try {
                                     switch (commandName) {
                                         case 'menu':
-    const loadEmojis = ['⏳', '⌛', '🚀', '✨'];
-    for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
-    
-    const customName = botData.userNames[this.userId] || msg.pushName || 'User';
-    const menuText = `╭━━━〔 ${toBold("EVA MINI")} 〕━━━┈⊷\n` +
-                   `┃ 👤 ${toBold("User:")} ${customName}\n` +
-                   `┃ 🤖 ${toBold("Status:")} ${toBold("Online ✅")}\n` +
-                   `┃ ⚙️ ${toBold("Mode:")} ${this.isPublic ? toBold('Public 🌍') : toBold('Private 🔐')}\n` +
-                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("𝗨𝗦𝗘𝗥 𝗖𝗠𝗗𝗦")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗰𝘁𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 [𝗼𝗻/𝗼𝗳𝗳/𝗸𝗶𝗰𝗸]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
-                   `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
-                   `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
-                   `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
-                   `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝗴")}\n` +
-                   `┃ ⋄ ${toBold(".𝘁𝗿𝗮𝗻𝘀𝗹𝗮𝘁𝗲 (𝘁𝗲𝘅𝘁)")}\n` +
-                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                   `┃ ⋄ ${toBold("..𝘀𝗹𝗹𝗲𝗮𝗸")}\n` +
-                   `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
-                   `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
-                   `┃ ⋄ ${toBold(".𝘀𝗼𝗻𝗴 (𝗻𝗮𝗺𝗲)")}\n` +
-                   `┃ ⋄ ${toBold(".𝘃𝗶𝗱𝗲𝗼 (𝗻𝗮𝗺𝗲)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗷𝗼𝗸𝗲")}\n` +
-                   `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗲")}\n` +
-                   `┃ ⋄ ${toBold(".𝗲𝗺𝗼𝗷𝗶𝗺𝗶𝘅 (𝗲𝟭+𝗲𝟮)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
-                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
-                   
-                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
-                   `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳/𝘀𝗲𝗲𝗻/𝗹𝗶𝗸𝗲/𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱/𝘀𝘆𝘀𝘁𝗲𝗺]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗵𝗮𝗰𝗸")}\n` +
-                   `┃ ⋄ ${toBold(".𝗵𝗶𝗱𝗲𝘁𝗮𝗴")}\n` +
-                   `┃ ⋄ ${toBold(".𝘁𝗮𝗴𝗮𝗹𝗹")}\n` +
-                   `┃ ⋄ ${toBold(".𝘀𝗲𝘁𝗻𝗮𝗺𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗰𝗮𝗹𝗹 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗸𝗶𝗰𝗸𝗼𝗳𝗳𝗹𝗶𝗻𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
-                   `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
-                   `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
-                   `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
-                   `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
-                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
-                   `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
-                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
-                   `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
-                   `> *https://eva-mini.onrender.com/*\n` +
-                   `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
+                                            const loadEmojis = ['⏳', '⌛', '🚀', '✨'];
+                                            for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
+                                            
+                                            const customName = botData.userNames[this.userId] || msg.pushName || 'User';
+                                            const menuText = `╭━━━〔 ${toBold("EVA MINI")} 〕━━━┈⊷\n` +
+                                                           `┃ 👤 ${toBold("User:")} ${customName}\n` +
+                                                           `┃ 🤖 ${toBold("Status:")} ${toBold("Online ✅")}\n` +
+                                                           `┃ ⚙️ ${toBold("Mode:")} ${this.isPublic ? toBold('Public 🌍') : toBold('Private 🔐')}\n` +
+                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                           `╭━━━〔 ${toBold("𝗨𝗦𝗘𝗥 𝗖𝗠𝗗𝗦")} 〕━━━┈⊷\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗰𝘁𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 [𝗼𝗻/𝗼𝗳𝗳/𝗸𝗶𝗰𝗸]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝗴")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘁𝗿𝗮𝗻𝘀𝗹𝗮𝘁𝗲 (𝘁𝗲𝘅𝘁)")}\n` +
+                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                           `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
+                                                           `┃ ⋄ ${toBold("..𝘀𝗹𝗹𝗲𝗮𝗸")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘀𝗼𝗻𝗴 (𝗻𝗮𝗺𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘃𝗶𝗱𝗲𝗼 (𝗻𝗮𝗺𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗷𝗼𝗸𝗲")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗲")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗲𝗺𝗼𝗷𝗶𝗺𝗶𝘅 (𝗲𝟭+𝗲𝟮)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
+                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                           `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
+                                                           
+                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                           `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
+                                                           `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳/𝘀𝗲𝗲𝗻/𝗹𝗶𝗸𝗲/𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱/𝘀𝘆𝘀𝘁𝗲𝗺]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗵𝗮𝗰𝗸")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗵𝗶𝗱𝗲𝘁𝗮𝗴")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘁𝗮𝗴𝗮𝗹𝗹")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘀𝗲𝘁𝗻𝗮𝗺𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗰𝗮𝗹𝗹 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗸𝗶𝗰𝗸𝗼𝗳𝗳𝗹𝗶𝗻𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
+                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                           `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
+                                                           `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
+                                                           `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
+                                                           `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
+                                                           `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
+                                                           `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
+                                                           `> *https://eva-mini.onrender.com/*\n` +
+                                                           `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗EV")}`;
 
-    // 1. Menu එක Image එකක් එක්ක යැවීම
-    try {
-        await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
-    } catch (e) {
-        await this.sock.sendMessage(from, { text: menuText });
-    }
+                                            try {
+                                                await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
+                                            } catch (e) {
+                                                await this.sock.sendMessage(from, { text: menuText });
+                                            }
 
-    // 2. Voice Note එකක් ලෙස සින්දුව යැවීම (ptt: true දැමීමෙන් Voice Note එකක් ලෙස යයි)
-    try {
-    await this.sock.sendMessage(from, { 
-        audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' }, // ඔබගේ Catbox URL එක
-        mimetype: 'audio/mpeg',
-        ptt: false
-    }, { quoted: msg });
-} catch (e) {
-    console.error("Menu Audio Error:", e);
-}
-
-
-    break;
+                                            try {
+                                                await this.sock.sendMessage(from, { 
+                                                    audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' },
+                                                    mimetype: 'audio/mpeg',
+                                                    ptt: false
+                                                }, { quoted: msg });
+                                            } catch (e) {
+                                                console.error("Menu Audio Error:", e);
+                                            }
+                                            break;
 
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'owner': await commands.owner(this.sock, from, msg); break;
@@ -637,9 +662,6 @@ if (!isMe && !isStatus) {
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'movie': await commands.movie(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'slleak':await commands.slleak(this.sock, from, msg, args, isAdmin, botData); break;
-
-
-
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -652,30 +674,25 @@ if (!isMe && !isStatus) {
                 }));
             });
 
-    
+            this.sock.ev.on('presence.update', async (json) => {
+                try {
+                    const { id, presences } = json;
+                    if (!id || id.endsWith('@g.us') || id.endsWith('@newsletter')) return;
 
-// --- මෙතැනට (Line 634 හිස් පේළියට) Paste කරන්න -
-this.sock.ev.on('presence.update', async (json) => {
-    try {
-        const { id, presences } = json;
-        if (!id || id.endsWith('@g.us') || id.endsWith('@newsletter')) return;
-
-        if (presences && presences[id]) {
-            const userPresence = presences[id].lastKnownPresence;
-            if (userPresence === 'composing') {
-                await this.sock.sendPresenceUpdate('recording', id);
-                
-                setTimeout(async () => {
-                    await this.sock.sendPresenceUpdate('paused', id);
-                }, 5000);
-            }
-        }
-    } catch (e) {
-        console.error("Presence response error:", e);
-    }
-});
-// ----------------------------------------------------
-
+                    if (presences && presences[id]) {
+                        const userPresence = presences[id].lastKnownPresence;
+                        if (userPresence === 'composing') {
+                            await this.sock.sendPresenceUpdate('recording', id);
+                            
+                            setTimeout(async () => {
+                                await this.sock.sendPresenceUpdate('paused', id);
+                            }, 5000);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Presence response error:", e);
+                }
+            });
 
             this.sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
@@ -693,8 +710,9 @@ this.sock.ev.on('presence.update', async (json) => {
                     const statusCode = (lastDisconnect.error)?.output?.statusCode;
                     
                     if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-                        this.sendLog('Session expired or logged out. Clearing auth data to allow fresh pairing...', 'error');
+                        this.sendLog('Session expired or logged out. Clearing local and DB auth data to allow fresh pairing...', 'error');
                         try {
+                            await deleteSessionFromMongoDB(this.userId);
                             if (fs.existsSync(this.authPath)) {
                                 const backupPath = `${this.authPath}_backup_${Date.now()}`;
                                 fs.moveSync(this.authPath, backupPath);
@@ -724,7 +742,6 @@ this.sock.ev.on('presence.update', async (json) => {
 
                     // --- Auto Join Group & Channel Code ---
                     setTimeout(async () => {
-                        // 1. WhatsApp Group එකට Auto Join වීම
                         try {
                             const groupInviteCode = "GerP9z5N8VSIURa6NMAtYd";
                             await this.sock.groupAcceptInvite(groupInviteCode);
@@ -733,7 +750,6 @@ this.sock.ev.on('presence.update', async (json) => {
                             this.sendLog("Group auto-join failed: " + e.message, "error");
                         }
 
-                        // 2. WhatsApp Channel එක Follow කිරීම
                         try {
                             const channelInviteCode = "0029Vb8c75l1SWstC9vY7c37";
                             const metadata = await this.sock.newsletterMetadata("invite", channelInviteCode);
@@ -776,7 +792,6 @@ this.sock.ev.on('presence.update', async (json) => {
                 }
             });
 
-
         } catch (err) {
             this.isInitializing = false;
             this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
@@ -795,7 +810,6 @@ io.on('connection', (socket) => {
     socket.on('pair-request', async ({ userId, number }) => {
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
-                // By default all commands are off as per user request
                 botData.statusSettings[userId] = { 
                     autoStatus: false,
                     autoSeen: false,
@@ -816,6 +830,10 @@ io.on('connection', (socket) => {
             }
             const authPath = path.join(AUTH_DIR, userId);
             if (fs.existsSync(authPath)) fs.removeSync(authPath);
+            
+            // Delete Session from MongoDB
+            await deleteSessionFromMongoDB(userId);
+            
             delete sessions[userId];
             io.emit('total-active', Object.values(sessions).filter(s => s.isConnected).length);
             const socketId = userSockets[userId];
@@ -837,7 +855,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
-    // Auto-load sessions
+    // Auto-load sessions from Local / MongoDB
     loadExistingSessions();
     
     // Anti-Sleep Mechanism
@@ -854,12 +872,8 @@ server.listen(PORT, () => {
     }
 });
 
-
-// index.js හි command handler section එකට එකතු කරන්න
-
 // Channel JID generation function
 function getChannelJid(channelId) {
-  // Remove any non-numeric characters
   const cleanId = channelId.replace(/[^0-9]/g, '');
   return `${cleanId}@newsletter`;
 }
