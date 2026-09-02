@@ -30,7 +30,9 @@
     "yt-search": "^2.13.1",
     "liyanaarachchi-thenkiri-scrap": "^1.0.0",
     "cineru-scrapper": "^0.1.0",
-    "yt-dlp-exec": "^1.0.2"
+    "yt-dlp-exec": "^1.0.2",
+     "mongoose": "^8.0.0",
+    "mongodb": "^6.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
