@@ -66,8 +66,7 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    movie: require('./commands/movie'),
-    slleak: require('./commands/slleak')
+    movie: require('./commands/movie')
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -663,7 +662,6 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'movie': await commands.movie(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'slleak':await commands.slleak(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
