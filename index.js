@@ -66,8 +66,7 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    movie: require('./commands/movie'),
-    slleak: require('./commands/slleak')
+    movie: require('./commands/movie')
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -554,7 +553,6 @@ class BotSession {
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                                                           `┃ ⋄ ${toBold("..𝘀𝗹𝗹𝗲𝗮𝗸")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
@@ -665,7 +663,6 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'movie': await commands.movie(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'slleak':await commands.slleak(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
