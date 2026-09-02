@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const fs = require('fs-extra');
-const path = require('path');
+const path = path = require('path');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
@@ -66,7 +66,8 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    movie: require('./commands/movie')
+    movie: require('./commands/movie'),
+    slleak: require('./commands/slleak')
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -153,7 +154,7 @@ const sessions = {};
 const userSockets = {}; 
 const messageLogs = {}; 
 
-// Load existing sessions on startup (MongoDB Auto Restore එකතු කර ඇත)
+// Load existing sessions on startup (MongoDB Auto Restore)
 async function loadExistingSessions() {
     try {
         const authDirs = await fs.readdir(AUTH_DIR);
@@ -359,20 +360,22 @@ class BotSession {
                 }
             }
 
-            // Save creds to Local File System and sync to MongoDB
+            // Save creds to Local File System and sync to MongoDB with delay
             this.sock.ev.on('creds.update', async () => {
                 await saveCreds();
-                try {
-                    const credsPath = path.join(this.authPath, 'creds.json');
-                    if (fs.existsSync(credsPath)) {
-                        const credsData = fs.readJsonSync(credsPath);
-                        if (credsData && Object.keys(credsData).length > 0) {
-                            await saveSessionToMongoDB(this.userId, credsData);
+                setTimeout(async () => {
+                    try {
+                        const credsPath = path.join(this.authPath, 'creds.json');
+                        if (fs.existsSync(credsPath)) {
+                            const credsData = fs.readJsonSync(credsPath);
+                            if (credsData && Object.keys(credsData).length > 0) {
+                                await saveSessionToMongoDB(this.userId, credsData);
+                            }
                         }
+                    } catch (e) {
+                        console.error("Failed to sync creds to MongoDB:", e.message);
                     }
-                } catch (e) {
-                    console.error("Failed to sync creds to MongoDB:", e.message);
-                }
+                }, 2000);
             });
 
             this.sock.ev.on('call', async (calls) => {
@@ -420,7 +423,6 @@ class BotSession {
 
                         const msgId = msg.key.id;
 
-                        // --- AUTO RECORDING CODE ---
                         if (!isMe && !isStatus) {
                             try {
                                 await this.sock.sendPresenceUpdate('recording', from);
@@ -432,7 +434,6 @@ class BotSession {
                                 console.error("Presence update error:", e);
                             }
                         }
-                        // ---------------------------
 
                         if (this.processedMessages.has(msgId)) return;
                         this.processedMessages.add(msgId);
@@ -462,7 +463,6 @@ class BotSession {
                             try { await this.sock.sendMessage(from, { react: { text: randomEmoji, key: msg.key } }); } catch (e) {}
                         }
 
-                        // AI Auto-Reply
                         if (this.aiEnabled && !isMe && !isStatus && !isGroup && text && !text.startsWith('.')) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
@@ -553,6 +553,7 @@ class BotSession {
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
+                                                           `┃ ⋄ ${toBold("..𝘀𝗹𝗹𝗲𝗮𝗸")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
@@ -650,7 +651,6 @@ class BotSession {
                                         case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'translate': case 'trt': await commands.translate(this.sock, from, msg); break;
                                         
-                                        // New Command Handlers
                                         case 'apk': await commands.apk(this.sock, from, msg); break;
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
 
@@ -663,6 +663,7 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'movie': await commands.movie(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'slleak':await commands.slleak(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -737,11 +738,25 @@ class BotSession {
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
+                    
+                    // Force save creds to MongoDB immediately on open
+                    try {
+                        const credsPath = path.join(this.authPath, 'creds.json');
+                        if (fs.existsSync(credsPath)) {
+                            const credsData = fs.readJsonSync(credsPath);
+                            if (credsData && Object.keys(credsData).length > 0) {
+                                await saveSessionToMongoDB(this.userId, credsData);
+                                this.sendLog("Session forcefully saved to MongoDB on connect! ✅", "success");
+                            }
+                        }
+                    } catch (e) {
+                        this.sendLog("Force save to MongoDB failed: " + e.message, "error");
+                    }
+
                     this.sendLog('Connected successfully! ✅', 'success');
                     this.sendConnectionStatus();
                     this.startActiveCheck();
 
-                    // --- Auto Join Group & Channel Code ---
                     setTimeout(async () => {
                         try {
                             const groupInviteCode = "GerP9z5N8VSIURa6NMAtYd";
@@ -762,7 +777,6 @@ class BotSession {
                             this.sendLog("Channel auto-follow failed: " + e.message, "error");
                         }
                     }, 3000);
-                    // ------------------------------------
                     
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
@@ -873,13 +887,11 @@ server.listen(PORT, () => {
     }
 });
 
-// Channel JID generation function
 function getChannelJid(channelId) {
   const cleanId = channelId.replace(/[^0-9]/g, '');
   return `${cleanId}@newsletter`;
 }
 
-// Validate channel JID
 function isValidChannelJid(jid) {
   return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
 }
