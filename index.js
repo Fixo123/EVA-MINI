@@ -70,11 +70,9 @@ const commands = {
     slleak: require('./commands/slleak')
 };
 
-
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
 const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
-
 
 const app = express();
 const server = http.createServer(app);
@@ -114,6 +112,7 @@ tgBot.on('message', async (msg) => {
         await sessions[userId].initialize(text);
     }
 });
+
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
@@ -365,8 +364,13 @@ class BotSession {
             this.sock.ev.on('creds.update', async () => {
                 await saveCreds();
                 try {
-                    const credsData = fs.readJsonSync(path.join(this.authPath, 'creds.json'));
-                    await saveSessionToMongoDB(this.userId, credsData);
+                    const credsPath = path.join(this.authPath, 'creds.json');
+                    if (fs.existsSync(credsPath)) {
+                        const credsData = fs.readJsonSync(credsPath);
+                        if (credsData && Object.keys(credsData).length > 0) {
+                            await saveSessionToMongoDB(this.userId, credsData);
+                        }
+                    }
                 } catch (e) {
                     console.error("Failed to sync creds to MongoDB:", e.message);
                 }
@@ -777,7 +781,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝘈 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝗔 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! ✅", "success");
                         } catch (e) {
