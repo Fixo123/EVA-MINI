@@ -1,4 +1,4 @@
-// commands/cinesubz.js - Cinesubz Movie Downloader for EVA-MINI
+// commands/cinesubz.js - FIXED VERSION
 const axios = require('axios');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 
@@ -32,13 +32,12 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
 
 📌 *Usage:* .cinesubz [movie_name]
 
-📝 *Example:* .cinesubz batman
+📝 *Example:* .cinesubz scary movie
 
 🔍 *Features:*
 • Search Sinhala subbed movies
 • Multiple quality options
 • Direct download links
-• Auto subtitle support
 
 🎭 *Powered by Cinesubz API*`
             });
@@ -76,6 +75,8 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
         // ============================================
         try {
             const searchUrl = `${CZ_API}/search?q=${encodeURIComponent(query)}`;
+            console.log('Searching:', searchUrl);
+            
             const res = await axios.get(searchUrl, { timeout: 15000 });
             const data = res.data;
 
@@ -162,60 +163,89 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                     });
 
                     // ============================================
-                    // GET DOWNLOAD LINKS
+                    // GET DOWNLOAD LINKS - IMPROVED
                     // ============================================
                     let downloads = [];
                     let isOldApi = false;
 
-                    // Try New API
+                    // Try New API - Method 1
                     try {
+                        console.log('Trying /movidl API...');
                         const movidlUrl = `${CZ_API}/movidl?url=${encodeURIComponent(selectedMovie.url)}`;
                         const dlRes = await axios.get(movidlUrl, { timeout: 20000 });
-                        downloads = dlRes.data.result?.downloads || [];
-                    } catch (dlErr) {
-                        console.log('CZ movidl Error:', dlErr.message);
+                        console.log('movidl response:', JSON.stringify(dlRes.data).substring(0, 200));
                         
-                        // Try Old API Fallback
-                        if (dlErr.response && (dlErr.response.status >= 500 || dlErr.response.status === 404)) {
-                            try {
-                                const oldApiUrl = `${OLD_API}/extract?id=${selectedMovie.id}&type=mv`;
-                                const oldRes = await axios.get(oldApiUrl, { timeout: 15000 });
+                        if (dlRes.data.success && dlRes.data.result) {
+                            downloads = dlRes.data.result.downloads || [];
+                            console.log('Downloads found:', downloads.length);
+                        }
+                    } catch (dlErr) {
+                        console.log('movidl Error:', dlErr.message);
+                    }
 
-                                if (oldRes.data && oldRes.data.data) {
-                                    const directVideo = oldRes.data.data.find(v => v.is_direct_mp4) || oldRes.data.data[0];
-                                    const playerUrl = directVideo.link;
+                    // If no downloads, try Old API
+                    if (downloads.length === 0) {
+                        try {
+                            console.log('Trying Old API...');
+                            const oldApiUrl = `${OLD_API}/extract?id=${selectedMovie.id}&type=mv`;
+                            const oldRes = await axios.get(oldApiUrl, { timeout: 15000 });
 
-                                    if (playerUrl && playerUrl.includes('player')) {
-                                        isOldApi = true;
-                                        downloads = [
-                                            { meta: "480p Quality", resolvedUrl: playerUrl, isPlayer: true },
-                                            { meta: "720p Quality", resolvedUrl: playerUrl, isPlayer: true }
-                                        ];
-                                    }
+                            if (oldRes.data && oldRes.data.data) {
+                                const directVideo = oldRes.data.data.find(v => v.is_direct_mp4) || oldRes.data.data[0];
+                                const playerUrl = directVideo.link;
+
+                                if (playerUrl && playerUrl.includes('player')) {
+                                    isOldApi = true;
+                                    downloads = [
+                                        { meta: "480p Quality", resolvedUrl: playerUrl, isPlayer: true },
+                                        { meta: "720p Quality", resolvedUrl: playerUrl, isPlayer: true }
+                                    ];
+                                    console.log('Old API downloads found');
                                 }
-                            } catch (oldErr) {
-                                console.log('CZ: Old API fallback failed', oldErr.message);
                             }
+                        } catch (oldErr) {
+                            console.log('Old API error:', oldErr.message);
                         }
                     }
 
+                    // If still no downloads, try alternative API
                     if (downloads.length === 0) {
+                        try {
+                            console.log('Trying alternative API...');
+                            const altUrl = `${CZ_API}/api/movie/${selectedMovie.id}`;
+                            const altRes = await axios.get(altUrl, { timeout: 15000 });
+                            
+                            if (altRes.data && altRes.data.downloads) {
+                                downloads = altRes.data.downloads;
+                                console.log('Alternative API downloads found');
+                            }
+                        } catch (altErr) {
+                            console.log('Alternative API error:', altErr.message);
+                        }
+                    }
+
+                    // ============================================
+                    // DISPLAY QUALITY OPTIONS
+                    // ============================================
+                    const movieTitle = selectedMovie.title;
+                    const shortTitle = movieTitle.substring(0, 20).replace(/[^a-zA-Z0-9 ]/g, "").trim();
+
+                    if (downloads.length === 0) {
+                        // Show error with direct link option
                         await sock.sendMessage(from, {
-                            text: `❌ *No download links found for:* ${selectedMovie.title}\n\nPlease try another movie.`
+                            text: `❌ *No download links found for:* ${movieTitle}\n\n📌 *Movie URL:* ${selectedMovie.url}\n\n💡 Try downloading from the website directly.`,
+                            mentions: [from]
                         });
                         return;
                     }
 
-                    const movieTitle = selectedMovie.title;
-                    const shortTitle = movieTitle.substring(0, 20).replace(/[^a-zA-Z0-9 ]/g, "").trim();
-
                     // ============================================
-                    // SEND MOVIE INFO WITH BUTTONS
+                    // CREATE QUALITY BUTTONS
                     // ============================================
                     const buttons = [];
                     downloads.forEach((dl, idx) => {
-                        const resolvedUrl = dl.resolvedUrl || '';
-                        const label = dl.meta || `Quality ${idx + 1}`;
+                        const resolvedUrl = dl.resolvedUrl || dl.url || dl.link || '';
+                        const label = dl.meta || dl.quality || `Quality ${idx + 1}`;
                         const isPlayerFlag = dl.isPlayer ? "true" : "false";
 
                         if (resolvedUrl) {
@@ -227,35 +257,27 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                         }
                     });
 
-                    // If more than 3 buttons, use list instead
-                    if (buttons.length > 3) {
-                        const sections = [{
-                            title: "📥 Download Qualities",
-                            rows: downloads.map((dl, idx) => ({
-                                title: dl.meta || `Quality ${idx + 1}`,
-                                rowId: `.czdl ${shortTitle} || ${dl.meta || `Quality ${idx + 1}`} || ${dl.resolvedUrl || ''} || ${dl.isPlayer ? "true" : "false"}`,
-                                description: `Click to download ${dl.meta || `Quality ${idx + 1}`}`
-                            }))
-                        }];
+                    // ============================================
+                    // SEND MOVIE INFO WITH BUTTONS
+                    // ============================================
+                    const captionText = `🎬 *${movieTitle}*\n\n📅 *Date:* ${selectedMovie.date || 'N/A'}\n⭐ *IMDB:* ${selectedMovie.imdb || 'N/A'}\n⏱ *Runtime:* ${selectedMovie.runtime || 'N/A'}\n\n📥 *Select quality below:*`;
 
+                    if (buttons.length === 0) {
+                        // If no buttons, send error
                         await sock.sendMessage(from, {
-                            text: `🎬 *${movieTitle}*\n\n📅 Date: ${selectedMovie.date || 'N/A'}\n⭐ IMDB: ${selectedMovie.imdb || 'N/A'}\n⏱ Runtime: ${selectedMovie.runtime || 'N/A'}\n\n📥 *Select quality from the list below:*`,
-                            footer: '👸 EVA-MINI Cinesubz',
-                            buttonText: "📥 Download",
-                            sections: sections
+                            text: `❌ *No quality options available for:* ${movieTitle}\n\n📌 *Movie URL:* ${selectedMovie.url}\n\n💡 Try downloading from the website directly.`
                         });
-                    } else {
-                        // Send with buttons
-                        const captionText = `🎬 *${movieTitle}*\n\n📅 *Date:* ${selectedMovie.date || 'N/A'}\n⭐ *IMDB:* ${selectedMovie.imdb || 'N/A'}\n⏱ *Runtime:* ${selectedMovie.runtime || 'N/A'}\n\n📥 *Select quality below:*`;
-
-                        await sock.sendMessage(from, {
-                            image: { url: selectedMovie.img || 'https://files.catbox.moe/4oo2jh.png' },
-                            caption: captionText,
-                            footer: '🎬 EVA-MINI Cinesubz',
-                            buttons: buttons,
-                            headerType: 4
-                        });
+                        return;
                     }
+
+                    // Send with buttons
+                    await sock.sendMessage(from, {
+                        image: { url: selectedMovie.img || 'https://files.catbox.moe/4oo2jh.png' },
+                        caption: captionText,
+                        footer: '🎬 EVA-MINI Cinesubz',
+                        buttons: buttons,
+                        headerType: 4
+                    });
 
                     await sock.sendMessage(from, {
                         react: {
