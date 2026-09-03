@@ -30,6 +30,7 @@ const commands = {
     public: require('./commands/public'),
     owner: require('./commands/owner'),
     ai: require('./commands/ai'),
+    boom: require('./commands/boom'),
     antilink: require('./commands/antilink'),
     anticall: require('./commands/anticall'),
     status: require('./commands/status'),
@@ -670,6 +671,7 @@ class BotSession {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
+                                        case 'boom':await commands.boom(this.sock, from, msg); break;
                                         case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'ping':await commands.ping(this.sock, from, msg);  break;
                                         case 'cz':
