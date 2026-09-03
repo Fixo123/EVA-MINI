@@ -13,7 +13,7 @@
     // Validation
     if (!target || !message || !count) {
         return await sock.sendMessage(from, {
-            text: '👽 *Usage:* .boom <number>,<message>,<count>\n\nExample:\n.boom 94771234567,Hello 👋,5'
+            text: '👽 *Usage:* .boom <number>,<message>,<count>\n\nExample:\n.boom 94703945265,Hello 👋,5'
         }, { quoted: msg });
     }
 
