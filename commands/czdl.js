@@ -1,4 +1,4 @@
-// commands/czdl.js - FIXED DOWNLOAD HANDLER
+// commands/czdl.js - Download Handler
 const axios = require('axios');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 
@@ -10,7 +10,7 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
         
         if (!inputData.includes('||')) {
             await sock.sendMessage(from, {
-                text: "❌ *Invalid format!* Please use the button to download."
+                text: "❌ *Invalid format!* Please use the quality selection."
             });
             return;
         }
@@ -38,10 +38,6 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                 }
             });
 
-            await sock.sendMessage(from, {
-                text: `🔄 *Downloading ${title} (${quality})...*\n⏳ Please wait...`
-            });
-
             const caption = `🎬 *${title}*\n📥 *Quality:* ${quality}\n\n> 🎬 *EVA-MINI Cinesubz*`;
 
             let downloadSuccess = false;
@@ -51,7 +47,6 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
             // ============================================
             if (resolvedUrl.includes('.mp4')) {
                 try {
-                    console.log('Trying direct MP4:', resolvedUrl);
                     await sock.sendMessage(from, {
                         document: { url: resolvedUrl },
                         mimetype: "video/mp4",
@@ -59,17 +54,17 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                         caption: caption
                     });
                     downloadSuccess = true;
+                    console.log('Direct MP4 download success');
                 } catch (e) {
                     console.log('Direct MP4 failed:', e.message);
                 }
             }
 
             // ============================================
-            // OLD API FALLBACK (for player links)
+            // OLD API FALLBACK
             // ============================================
             if (!downloadSuccess && isPlayerFlag) {
                 try {
-                    console.log('Trying Old API extraction...');
                     const htmlRes = await axios.get(resolvedUrl, { timeout: 15000 });
                     const htmlContent = htmlRes.data;
 
@@ -114,8 +109,6 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                 const tryDownloadApi = async (urlToTry) => {
                     try {
                         const dlApiUrl = `${CZ_API}/download?url=${urlToTry}`;
-                        console.log('Trying /download API:', dlApiUrl);
-                        
                         const dlRes = await axios.get(dlApiUrl, { timeout: 20000 });
                         const dlData = dlRes.data;
 
@@ -136,7 +129,6 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
                         }
                         return false;
                     } catch (e) {
-                        console.log('Download API error:', e.message);
                         return false;
                     }
                 };
@@ -148,13 +140,13 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
             }
 
             // ============================================
-            // IF ALL FAILED - SEND LINK
+            // SEND LINK IF ALL FAILED
             // ============================================
             if (!downloadSuccess) {
                 await sock.sendMessage(from, {
                     text: `⚠️ *Direct download failed!*\n\n📥 *Download Link:*\n${resolvedUrl}\n\n💡 Try opening this link in your browser.`
                 });
-                downloadSuccess = true; // Mark as handled
+                downloadSuccess = true;
             }
 
             if (downloadSuccess) {
