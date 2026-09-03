@@ -42,7 +42,7 @@ module.exports = async function apkCommand(sock, from, msg) {
 📅 *Last Updated:* ${app.updated}
 📁 *Size:* ${sizeMB} MB
 
-> > ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴɪᴍᴀ ꜰᴀᴍɪʟʏ ʙᴏᴛ 🔥
+> > ᴘᴏᴡᴇʀᴇᴅ ʙʏ eva mini 🔥
         `.trim();
 
         // upload react
