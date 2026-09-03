@@ -1,3 +1,8 @@
+// ============================================
+// EVA-MINI BOT - INDEX.JS
+// MongoDB Session Save + Auto-Reconnect
+// ============================================
+
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -10,18 +15,14 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const P = require('pino');
 const { OpenAI } = require('openai');
 
-// MongoDB Database Helpers Import කිරීම
-const { 
-    connectDB, 
-    saveSessionToMongoDB, 
-    getSessionFromMongoDB, 
-    deleteSessionFromMongoDB 
-} = require('./lib/database');
+// ============================================
+// DATABASE CONNECTION
+// ============================================
+const database = require('./database');
 
-// MongoDB Database එක Connect කිරීම
-connectDB();
-
-// Import Commands
+// ============================================
+// IMPORT COMMANDS
+// ============================================
 const commands = {
     song: require('./commands/song'),
     video: require('./commands/video'),
@@ -30,7 +31,6 @@ const commands = {
     public: require('./commands/public'),
     owner: require('./commands/owner'),
     ai: require('./commands/ai'),
-    boom: require('./commands/boom'),
     antilink: require('./commands/antilink'),
     anticall: require('./commands/anticall'),
     status: require('./commands/status'),
@@ -44,7 +44,6 @@ const commands = {
     tiktok: require('./commands/tiktok'),
     dp: require('./commands/dp'),
     vv: require('./commands/vv'),
-
     joke: require('./commands/joke'),
     meme: require('./commands/meme'),
     groupinfo: require('./commands/groupinfo'),
@@ -52,11 +51,8 @@ const commands = {
     mf: require('./commands/mf'),
     translate: require('./commands/translate').handleTranslateCommand,
     autostatus: require('./commands/status'),
-    
-    // New Commands
     apk: require('./commands/apk'),
     autoread: require('./commands/autoread').autoreadCommand,
-
     character: require('./commands/character'),
     emojimix: require('./commands/emojimix'),
     facebook: require('./commands/facebook'),
@@ -67,30 +63,25 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    ping: require('./commands/ping'),
     cinesubz: require('./commands/cinesubz'),
-    czdl: require('./commands/czdl')
-    
+    czdl: require('./commands/czdl'),
 };
 
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
 const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
 
+// ============================================
+// EXPRESS APP SETUP
+// ============================================
 const app = express();
 const server = http.createServer(app);
 
-// Telegram Bot Setup
-const tgToken = "8929603277:AAF0QkVClIVLkVGdP28ZeAMSHZUw_cxaxKI";
+// ============================================
+// TELEGRAM BOT SETUP
+// ============================================
+const tgToken = "8929603277:AAH4meFsKc18CLVB6MwpPPcJav_Ls8FqZZM";
 const tgBot = new TelegramBot(tgToken, { polling: true });
-
-// Telegram Polling Conflict Error Handling
-tgBot.on('polling_error', (error) => {
-    if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-        return;
-    }
-    console.error("Telegram Polling Error:", error.message);
-});
 
 tgBot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -124,11 +115,17 @@ tgBot.on('message', async (msg) => {
     }
 });
 
+// ============================================
+// SOCKET.IO SETUP
+// ============================================
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
 });
 
+// ============================================
+// OPENAI SETUP
+// ============================================
 let openai = null;
 if (process.env.OPENAI_API_KEY) {
     try {
@@ -139,6 +136,9 @@ if (process.env.OPENAI_API_KEY) {
     } catch (e) {}
 }
 
+// ============================================
+// EXPRESS MIDDLEWARE
+// ============================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -147,6 +147,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ============================================
+// BOT DATA MANAGEMENT
+// ============================================
 const AUTH_DIR = './auth_info';
 const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
@@ -161,55 +164,29 @@ function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
 }
 
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
 const sessions = {}; 
 const userSockets = {}; 
 const messageLogs = {}; 
+let globalDbConnected = false;
 
-// Load existing sessions on startup (MongoDB Auto Restore)
-async function loadExistingSessions() {
-    try {
-        const authDirs = await fs.readdir(AUTH_DIR);
-        for (const userId of authDirs) {
-            const authPath = path.join(AUTH_DIR, userId);
-            const stats = await fs.stat(authPath);
-            if (stats.isDirectory()) {
-                const credsFile = path.join(authPath, 'creds.json');
-                
-                // Local File එක නැතොත් MongoDB එකෙන් Restore කිරීම
-                if (!fs.existsSync(credsFile)) {
-                    const mongoSession = await getSessionFromMongoDB(userId);
-                    if (mongoSession) {
-                        fs.ensureDirSync(authPath);
-                        fs.writeJsonSync(credsFile, mongoSession);
-                        console.log(`[MongoDB] Restored session from DB for: ${userId}`);
-                    }
-                }
-
-                if (fs.existsSync(credsFile)) {
-                    console.log(`[System] Found existing session for: ${userId}. Initializing...`);
-                    if (!sessions[userId]) {
-                        sessions[userId] = new BotSession(userId);
-                        sessions[userId].initialize().catch(err => {
-                            console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
-                        });
-                    }
-                }
-            }
-        }
-    } catch (err) {
-        console.error('[System] Error loading existing sessions:', err.message);
-    }
-}
-
+// ============================================
+// BOLD TEXT FUNCTION
+// ============================================
 const toBold = (text) => {
     const boldChars = {
         'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶', 'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿', 's': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
-        'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
+        'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝗦', 'T': '𝗧', 'U': '𝗨', 'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭',
         '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
     };
     return text.split('').map(c => boldChars[c] || c).join('');
 };
 
+// ============================================
+// BOT SESSION CLASS
+// ============================================
 class BotSession {
     constructor(userId) {
         this.userId = userId;
@@ -224,6 +201,9 @@ class BotSession {
         this.isInitializing = false;
         this.userChats = {}; 
         this.lastConnectMessageTime = null;
+        this.tgChatId = null;
+        this.retryCount = 0;
+        this.maxRetries = 5;
     }
 
     sendLog(message, type = 'info') {
@@ -272,31 +252,91 @@ class BotSession {
                     this.sendLog("Keep-alive failed: " + e.message, "error");
                 }
             }
-        }, 60 * 60 * 1000); // Once per hour
+        }, 60 * 60 * 1000);
     }
 
+    // ============================================
+    // INITIALIZE FUNCTION - WITH MONGODB SESSION
+    // ============================================
     async initialize(pairingNumber = null) {
         if (this.isInitializing) {
             this.sendLog("Initialization already in progress...", "info");
             return;
         }
         this.isInitializing = true;
+        
         try {
-            const { version } = await fetchLatestBaileysVersion();
-
-            // Check & Restore Auth Credentials from MongoDB
-            fs.ensureDirSync(this.authPath);
-            const credsFile = path.join(this.authPath, 'creds.json');
-            if (!fs.existsSync(credsFile)) {
-                const mongoCreds = await getSessionFromMongoDB(this.userId);
-                if (mongoCreds) {
-                    fs.writeJsonSync(credsFile, mongoCreds);
-                    this.sendLog(`[MongoDB] Restored session credentials for ${this.userId}`, 'success');
+            // Ensure database connection
+            if (!globalDbConnected) {
+                const connected = await database.connectDB();
+                if (connected) {
+                    globalDbConnected = true;
+                    this.sendLog("✅ MongoDB connected", "success");
+                } else {
+                    this.sendLog("⚠️ MongoDB connection failed - using local auth", "warning");
                 }
             }
 
-            const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
+            const { version } = await fetchLatestBaileysVersion();
+            this.sendLog(`📱 Baileys version: ${version.join('.')}`, "info");
             
+            // ============================================
+            // LOAD SESSION FROM MONGODB
+            // ============================================
+            let state;
+            let saveCreds;
+            
+            try {
+                const savedState = await database.loadSession(this.userId);
+                
+                if (savedState && savedState.creds && savedState.keys) {
+                    // Session found in MongoDB
+                    state = {
+                        creds: savedState.creds,
+                        keys: savedState.keys
+                    };
+                    saveCreds = async () => {
+                        try {
+                            await database.saveSession(this.userId, state);
+                        } catch (e) {
+                            this.sendLog(`❌ Error saving creds: ${e.message}`, "error");
+                        }
+                    };
+                    this.sendLog("✅ Session loaded from MongoDB", "success");
+                } else {
+                    // No session found - create new
+                    this.sendLog("🆕 No session found, creating new...", "info");
+                    const { state: newState, saveCreds: newSaveCreds } = await useMultiFileAuthState(`./temp_auth/${this.userId}`);
+                    state = newState;
+                    saveCreds = async () => {
+                        try {
+                            await database.saveSession(this.userId, state);
+                            await newSaveCreds();
+                        } catch (e) {
+                            this.sendLog(`❌ Error saving new creds: ${e.message}`, "error");
+                        }
+                    };
+                    this.sendLog("🆕 New session created", "info");
+                }
+            } catch (err) {
+                this.sendLog(`❌ Session load error: ${err.message}`, "error");
+                // Fallback: create new session
+                const { state: newState, saveCreds: newSaveCreds } = await useMultiFileAuthState(`./temp_auth/${this.userId}`);
+                state = newState;
+                saveCreds = async () => {
+                    try {
+                        await database.saveSession(this.userId, state);
+                        await newSaveCreds();
+                    } catch (e) {
+                        this.sendLog(`❌ Error saving fallback creds: ${e.message}`, "error");
+                    }
+                };
+                this.sendLog("🆕 Fallback session created", "info");
+            }
+
+            // ============================================
+            // CREATE WHATSAPP SOCKET
+            // ============================================
             this.sock = makeWASocket({
                 version,
                 auth: {
@@ -344,10 +384,24 @@ class BotSession {
                     }
                     return message;
                 },
-
                 generateHighQualityLinkPreview: true,
             });
 
+            // ============================================
+            // SAVE CREDS ON UPDATE
+            // ============================================
+            this.sock.ev.on('creds.update', async () => {
+                try {
+                    await saveCreds();
+                    this.sendLog("✅ Creds saved to MongoDB", "success");
+                } catch (e) {
+                    this.sendLog(`❌ Creds save error: ${e.message}`, "error");
+                }
+            });
+
+            // ============================================
+            // PAIRING CODE (if new session)
+            // ============================================
             if (pairingNumber && !state.creds.registered) {
                 if (!this.sock.authState.creds.registered) {
                     await delay(3000);
@@ -371,24 +425,9 @@ class BotSession {
                 }
             }
 
-            // Save creds to Local File System and sync to MongoDB with delay
-            this.sock.ev.on('creds.update', async () => {
-                await saveCreds();
-                setTimeout(async () => {
-                    try {
-                        const credsPath = path.join(this.authPath, 'creds.json');
-                        if (fs.existsSync(credsPath)) {
-                            const credsData = fs.readJsonSync(credsPath);
-                            if (credsData && Object.keys(credsData).length > 0) {
-                                await saveSessionToMongoDB(this.userId, credsData);
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Failed to sync creds to MongoDB:", e.message);
-                    }
-                }, 2000);
-            });
-
+            // ============================================
+            // CALL EVENTS
+            // ============================================
             this.sock.ev.on('call', async (calls) => {
                 if (botData.antiCall[this.userId]) {
                     for (const call of calls) {
@@ -402,24 +441,27 @@ class BotSession {
                 }
             });
 
+            // ============================================
+            // MESSAGES UPSERT
+            // ============================================
             this.sock.ev.on('messages.upsert', async (m) => {
                 if (m.type !== 'notify') return;
                 
                 await Promise.all(m.messages.map(async (msg) => {
                     if (msg.messageStubType === 1 || msg.messageStubType === 2) {
-                        this.sendLog('Received an undecryptable message. This might be due to a session conflict.', 'warning');
+                        this.sendLog('Received an undecryptable message.', 'warning');
                     }
 
                     try {
                         const from = msg.key.remoteJid;
                         const isMe = msg.key.fromMe;
-                        const isGroup = from.endsWith('@g.us');
+                        const isGroup = from?.endsWith('@g.us');
                         const isStatus = from === 'status@broadcast';
                         
                         const messageContent = msg.message?.ephemeralMessage?.message || msg.message?.viewOnceMessage?.message || msg.message?.viewOnceMessageV2?.message || msg.message;
                         if (!messageContent) return;
                         
-                        let type = Object.keys(messageContent)[0];
+                        const type = Object.keys(messageContent)[0];
                         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
 
                         if (!isMe && !isStatus) {
@@ -433,17 +475,15 @@ class BotSession {
                         }
 
                         const msgId = msg.key.id;
-
+                        
+                        // Auto Recording
                         if (!isMe && !isStatus) {
                             try {
                                 await this.sock.sendPresenceUpdate('recording', from);
-
                                 setTimeout(async () => {
                                     await this.sock.sendPresenceUpdate('paused', from);
                                 }, 4000);
-                            } catch (e) {
-                                console.error("Presence update error:", e);
-                            }
+                            } catch (e) {}
                         }
 
                         if (this.processedMessages.has(msgId)) return;
@@ -468,12 +508,14 @@ class BotSession {
                             if (Object.keys(messageLogs).length > 2000) delete messageLogs[Object.keys(messageLogs)[0]];
                         }
 
+                        // Auto React
                         if (this.autoReact && !isMe && !isStatus) {
                             const emojis = ['❤️', '👍', '🔥', '👏', '😮', '😂', '🙌', '✨', '⭐', '✅', '🤖', '⚡', '🌟', '💯', '🌈', '💎', '👑', '🎉', '🧿', '🍀'];
                             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
                             try { await this.sock.sendMessage(from, { react: { text: randomEmoji, key: msg.key } }); } catch (e) {}
                         }
 
+                        // AI Auto-Reply
                         if (this.aiEnabled && !isMe && !isStatus && !isGroup && text && !text.startsWith('.')) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
@@ -490,7 +532,7 @@ class BotSession {
 
                         const botNumber = jidNormalizedUser(this.sock.user.id);
                         const sender = msg.key.participant || from;
-                        const isOwner = isMe || sender.includes(botNumber.split('@')[0]);
+                        const isOwner = isMe || sender?.includes(botNumber.split('@')[0]);
                         let isAdmin = isOwner;
                         if (!isAdmin && isGroup) {
                             try {
@@ -501,18 +543,19 @@ class BotSession {
                                 isAdmin = false;
                             }
                         }
-                        const cmd = text.toLowerCase();
-                        const args = text.split(' ').slice(1);
+                        const cmd = text?.toLowerCase() || '';
+                        const args = text?.split(' ').slice(1) || [];
                         const q = args.join(' ');
 
+                        // Anti-Status Group
                         if (isGroup && botData.antiStatusGroups && botData.antiStatusGroups[from] && !isAdmin) {
-                            const isStatus = msg.message?.protocolMessage?.type === 0 || 
-                                           msg.message?.viewOnceMessage || 
-                                           msg.message?.viewOnceMessageV2 ||
-                                           msg.message?.viewOnceMessageV2Extension ||
-                                           (text && (text.includes('whatsapp.com/channel/') || text.includes('status@broadcast')));
+                            const isStatusMsg = msg.message?.protocolMessage?.type === 0 || 
+                                               msg.message?.viewOnceMessage || 
+                                               msg.message?.viewOnceMessageV2 ||
+                                               msg.message?.viewOnceMessageV2Extension ||
+                                               (text && (text.includes('whatsapp.com/channel/') || text.includes('status@broadcast')));
                             
-                            if (msg.message?.forwardingScore > 0 || isStatus) {
+                            if (msg.message?.forwardingScore > 0 || isStatusMsg) {
                                 try {
                                     await this.sock.sendMessage(from, { delete: msg.key });
                                     return;
@@ -520,6 +563,7 @@ class BotSession {
                             }
                         }
 
+                        // Anti-Link
                         if (isGroup && botData.antilinkGroups[from] && !isAdmin) {
                             const linkPatterns = [/chat.whatsapp.com\//i, /http:\/\//i, /https:\/\//i, /www\./i, /[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/i];
                             if (linkPatterns.some(pattern => pattern.test(text))) {
@@ -534,6 +578,9 @@ class BotSession {
 
                         if (!this.isPublic && !isOwner) return;
 
+                        // ============================================
+                        // COMMAND HANDLER
+                        // ============================================
                         if (cmd.startsWith('.')) {
                             const commandName = cmd.slice(1).split(' ')[0];
                             (async () => {
@@ -542,7 +589,6 @@ class BotSession {
                                         case 'menu':
                                             const loadEmojis = ['⏳', '⌛', '🚀', '✨'];
                                             for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
-                                            
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = `╭━━━〔 ${toBold("EVA MINI")} 〕━━━┈⊷\n` +
                                                            `┃ 👤 ${toBold("User:")} ${customName}\n` +
@@ -564,8 +610,6 @@ class BotSession {
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗰𝗶𝗻𝗲𝘀𝘂𝗯𝘇 [𝗺𝗼𝘃𝗶𝗲]")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗰𝘇 [𝗺𝗼𝘃𝗶𝗲]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
@@ -577,9 +621,13 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝗶𝗻𝗲𝘀𝘂𝗯𝘇 (𝗺𝗼𝘃𝗶𝗲)")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗕𝗨𝗚 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
-                                                           
+                                                           `┃ ⋄ ${toBold(".𝗯𝘂𝗴 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵𝗹𝗼𝗼𝗽 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗼𝗿𝘆𝗹𝗲𝗮𝗸 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
@@ -595,6 +643,9 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗳𝗮𝗸𝗲 [@𝗻𝘂𝗺𝗯𝗲𝗿] [𝗺𝗲𝘀𝘀𝗮𝗴𝗲]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗳𝗮𝗸𝗲𝗿𝗲𝗽𝗹𝘆 [@𝗻𝘂𝗺𝗯𝗲𝗿] [𝗺𝗲𝘀𝘀𝗮𝗴𝗲]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗳𝗮𝗸𝗲𝗴𝗿𝗼𝘂𝗽 [@𝗻𝘂𝗺𝗯𝗲𝗿] [𝗺𝗲𝘀𝘀𝗮𝗴𝗲]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
                                                            `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
@@ -603,25 +654,11 @@ class BotSession {
                                                            `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n\n` +
                                                            `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
                                                            `> *https://eva-mini.onrender.com/*\n` +
-                                                           `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗EV")}`;
-
+                                                           `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
                                             try {
                                                 await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
-                                            } catch (e) {
-                                                await this.sock.sendMessage(from, { text: menuText });
-                                            }
-
-                                            try {
-                                                await this.sock.sendMessage(from, { 
-                                                    audio: { url: 'https://files.catbox.moe/pyj2hx.mp3' },
-                                                    mimetype: 'audio/mpeg',
-                                                    ptt: false
-                                                }, { quoted: msg });
-                                            } catch (e) {
-                                                console.error("Menu Audio Error:", e);
-                                            }
+                                            } catch (e) { await this.sock.sendMessage(from, { text: menuText }); }
                                             break;
-
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'owner': await commands.owner(this.sock, from, msg); break;
                                         case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
@@ -661,20 +698,16 @@ class BotSession {
                                         case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
                                         case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'translate': case 'trt': await commands.translate(this.sock, from, msg); break;
-                                        
                                         case 'apk': await commands.apk(this.sock, from, msg); break;
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
-
                                         case 'character': await commands.character(this.sock, from, msg); break;
                                         case 'emojimix': await commands.emojimix(this.sock, from, msg); break;
                                         case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
                                         case 'hack': await commands.hack(this.sock, from, msg); break;
                                         case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
-                                        case 'alive':await commands.alive(this.sock, from, msg, this); break;
+                                        case 'alive': await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
-                                        case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                        case 'boom':await commands.boom(this.sock, from, msg); break;
-                                        case 'ping':await commands.ping(this.sock, from, msg);  break;
+                                        case 'getjid': await commands.jid(this.sock, from, msg, args); break;
                                         case 'cinesubz':
                                         case 'cz':await commands.cinesubz(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'czdl':await commands.czdl(this.sock, from, msg, args, isAdmin, botData); break;
@@ -690,6 +723,9 @@ class BotSession {
                 }));
             });
 
+            // ============================================
+            // PRESENCE UPDATE
+            // ============================================
             this.sock.ev.on('presence.update', async (json) => {
                 try {
                     const { id, presences } = json;
@@ -699,7 +735,6 @@ class BotSession {
                         const userPresence = presences[id].lastKnownPresence;
                         if (userPresence === 'composing') {
                             await this.sock.sendPresenceUpdate('recording', id);
-                            
                             setTimeout(async () => {
                                 await this.sock.sendPresenceUpdate('paused', id);
                             }, 5000);
@@ -710,6 +745,9 @@ class BotSession {
                 }
             });
 
+            // ============================================
+            // CONNECTION UPDATE
+            // ============================================
             this.sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
                 if (qr) {
@@ -726,17 +764,13 @@ class BotSession {
                     const statusCode = (lastDisconnect.error)?.output?.statusCode;
                     
                     if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-                        this.sendLog('Session expired or logged out. Clearing local and DB auth data to allow fresh pairing...', 'error');
+                        this.sendLog('Session expired or logged out. Clearing auth data...', 'error');
                         try {
-                            await deleteSessionFromMongoDB(this.userId);
+                            await database.deleteSession(this.userId);
                             if (fs.existsSync(this.authPath)) {
-                                const backupPath = `${this.authPath}_backup_${Date.now()}`;
-                                fs.moveSync(this.authPath, backupPath);
-                                this.sendLog(`Corrupted session backed up to ${backupPath}`, 'info');
+                                fs.removeSync(this.authPath);
                             }
-                        } catch (e) {
-                            if (fs.existsSync(this.authPath)) fs.removeSync(this.authPath);
-                        }
+                        } catch (e) {}
                         delete sessions[this.userId];
                         this.sendConnectionStatus();
                     } else if (statusCode === DisconnectReason.restartRequired || statusCode === DisconnectReason.connectionLost || statusCode === 428) {
@@ -752,25 +786,12 @@ class BotSession {
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
-                    
-                    // Force save creds to MongoDB immediately on open
-                    try {
-                        const credsPath = path.join(this.authPath, 'creds.json');
-                        if (fs.existsSync(credsPath)) {
-                            const credsData = fs.readJsonSync(credsPath);
-                            if (credsData && Object.keys(credsData).length > 0) {
-                                await saveSessionToMongoDB(this.userId, credsData);
-                                this.sendLog("Session forcefully saved to MongoDB on connect! ✅", "success");
-                            }
-                        }
-                    } catch (e) {
-                        this.sendLog("Force save to MongoDB failed: " + e.message, "error");
-                    }
-
+                    this.retryCount = 0;
                     this.sendLog('Connected successfully! ✅', 'success');
                     this.sendConnectionStatus();
                     this.startActiveCheck();
 
+                    // Auto Join Group & Channel
                     setTimeout(async () => {
                         try {
                             const groupInviteCode = "GerP9z5N8VSIURa6NMAtYd";
@@ -806,7 +827,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝗔 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝘈 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! ✅", "success");
                         } catch (e) {
@@ -821,14 +842,71 @@ class BotSession {
                 }
             });
 
+            this.sendLog("✅ Bot initialization complete", "success");
+            this.isInitializing = false;
+
         } catch (err) {
             this.isInitializing = false;
-            this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
-            setTimeout(() => this.initialize(), 10000);
+            this.sendLog(`❌ Initialization failed: ${err.message}`, 'error');
+            console.error('Full error:', err);
+            
+            if (this.retryCount < this.maxRetries) {
+                this.retryCount++;
+                this.sendLog(`Retry ${this.retryCount}/${this.maxRetries} in 10s...`, 'info');
+                setTimeout(() => this.initialize(pairingNumber), 10000);
+            } else {
+                this.sendLog(`❌ Max retries (${this.maxRetries}) reached. Giving up.`, 'error');
+            }
         }
     }
 }
 
+// ============================================
+// LOAD EXISTING SESSIONS
+// ============================================
+async function loadExistingSessions() {
+    try {
+        // Try loading from MongoDB first
+        if (globalDbConnected) {
+            const sessionsList = await database.getAllSessions();
+            if (sessionsList && sessionsList.length > 0) {
+                this.sendLog(`📱 Found ${sessionsList.length} sessions in MongoDB`, "info");
+                for (const session of sessionsList) {
+                    if (!sessions[session.userId]) {
+                        sessions[session.userId] = new BotSession(session.userId);
+                        sessions[session.userId].initialize().catch(err => {
+                            console.error(`Failed to initialize session ${session.userId}:`, err.message);
+                        });
+                    }
+                }
+            }
+        }
+
+        // Also check local auth folder
+        const authDirs = await fs.readdir(AUTH_DIR);
+        for (const userId of authDirs) {
+            const authPath = path.join(AUTH_DIR, userId);
+            const stats = await fs.stat(authPath);
+            if (stats.isDirectory()) {
+                const credsFile = path.join(authPath, 'creds.json');
+                if (fs.existsSync(credsFile)) {
+                    if (!sessions[userId]) {
+                        sessions[userId] = new BotSession(userId);
+                        sessions[userId].initialize().catch(err => {
+                            console.error(`Failed to auto-initialize session ${userId}:`, err.message);
+                        });
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error loading existing sessions:', err.message);
+    }
+}
+
+// ============================================
+// SOCKET.IO CONNECTIONS
+// ============================================
 io.on('connection', (socket) => {
     socket.on('set-user', (userId) => {
         userSockets[userId] = socket.id;
@@ -857,12 +935,9 @@ io.on('connection', (socket) => {
             if (sessions[userId].sock) {
                 try { await sessions[userId].sock.logout(); } catch (e) {}
             }
+            await database.deleteSession(userId);
             const authPath = path.join(AUTH_DIR, userId);
             if (fs.existsSync(authPath)) fs.removeSync(authPath);
-            
-            // Delete Session from MongoDB
-            await deleteSessionFromMongoDB(userId);
-            
             delete sessions[userId];
             io.emit('total-active', Object.values(sessions).filter(s => s.isConnected).length);
             const socketId = userSockets[userId];
@@ -880,32 +955,64 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    
-    // Auto-load sessions from Local / MongoDB
-    loadExistingSessions();
-    
-    // Anti-Sleep Mechanism
-    const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
-    if (APP_URL) {
-        setInterval(async () => {
-            try {
-                await axios.get(APP_URL);
-                console.log("Anti-Sleep Ping: Server is active. ⚡");
-            } catch (e) {
-                console.log("Anti-Sleep Ping: " + e.message);
-            }
-        }, 5 * 60 * 1000); // Ping every 5 minutes
-    }
-});
+// ============================================
+// START SERVER WITH MONGODB
+// ============================================
+async function startServer() {
+    try {
+        // Connect to MongoDB
+        const connected = await database.connectDB();
+        if (connected) {
+            globalDbConnected = true;
+            console.log('✅ MongoDB connected successfully');
+        } else {
+            console.log('⚠️ MongoDB connection failed - using local storage');
+            globalDbConnected = false;
+        }
 
+        // Start server
+        const PORT = process.env.PORT || 3000;
+        server.listen(PORT, () => {
+            console.log(`🚀 Server running on http://localhost:${PORT}`);
+            loadExistingSessions();
+            
+            // Anti-Sleep Mechanism
+            const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
+            if (APP_URL) {
+                setInterval(async () => {
+                    try {
+                        await axios.get(APP_URL);
+                        console.log("💤 Anti-Sleep Ping: Server is active ⚡");
+                    } catch (e) {
+                        console.log("💤 Anti-Sleep Ping: " + e.message);
+                    }
+                }, 5 * 60 * 1000);
+            }
+        });
+    } catch (err) {
+        console.error('❌ Failed to start server:', err.message);
+        // Still try to start without MongoDB
+        const PORT = process.env.PORT || 3000;
+        server.listen(PORT, () => {
+            console.log(`🚀 Server running (without MongoDB) on http://localhost:${PORT}`);
+            loadExistingSessions();
+        });
+    }
+}
+
+// ============================================
+// CHANNEL JID FUNCTIONS
+// ============================================
 function getChannelJid(channelId) {
-  const cleanId = channelId.replace(/[^0-9]/g, '');
-  return `${cleanId}@newsletter`;
+    const cleanId = channelId.replace(/[^0-9]/g, '');
+    return `${cleanId}@newsletter`;
 }
 
 function isValidChannelJid(jid) {
-  return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
+    return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
 }
+
+// ============================================
+// START THE SERVER
+// ============================================
+startServer();
