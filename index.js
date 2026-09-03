@@ -1,4 +1,4 @@
-require('dotenv').config();
+1require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -67,9 +67,10 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    sinhalasub: require('./commands/sinhalasub'),
     ping: require('./commands/ping'),
-    cinesubz: require('./commands/cinesubz-downloader')
+    cinesubz: require('./commands/cinesubz'),
+    czdl: require('./commands/czdl')
+    
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -563,7 +564,8 @@ class BotSession {
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝘀𝗶𝗻𝗵𝗮𝗹𝗮𝘀𝘂𝗯")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝗶𝗻𝗲𝘀𝘂𝗯𝘇 [𝗺𝗼𝘃𝗶𝗲]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝗰𝘇 [𝗺𝗼𝘃𝗶𝗲]")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
@@ -672,22 +674,10 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'boom':await commands.boom(this.sock, from, msg); break;
-                                        case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'ping':await commands.ping(this.sock, from, msg);  break;
-                                        case 'cz':
                                         case 'cinesubz':
-                                        case 'cz_dl':
-                                        const args = msg.message.conversation?.split(' ').slice(1) || 
-                                        msg.message.extendedTextMessage?.text?.split(' ').slice(1) || [];
-                                        await commands.cinesubz.handler({
-                                        socket: this.sock, // ඔබගේ socket එක
-                                        msg: msg,
-                                        sender: from,      // ඔබගේ sender Jid එක
-                                        command: command,  // 'cz' හෝ 'cinesubz' හෝ 'cz_dl'
-                                        args: args,
-                                        reply: async (text) => await this.sock.sendMessage(from, { text: text })
-                                         });   
-                                    break;
+                                        case 'cz':await commands.cinesubz(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'czdl':await commands.czdl(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
