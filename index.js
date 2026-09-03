@@ -77,8 +77,16 @@ const app = express();
 const server = http.createServer(app);
 
 // Telegram Bot Setup
-const tgToken = "8929603277:AAF0QkVClIVLkVGdP28ZeAMSHZUw_cxaxKI";
+const tgToken = "8929603277:AAH4meFsKc18CLVB6MwpPPcJav_Ls8FqZZM";
 const tgBot = new TelegramBot(tgToken, { polling: true });
+
+// Telegram Polling Conflict Error Handling
+tgBot.on('polling_error', (error) => {
+    if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+        return;
+    }
+    console.error("Telegram Polling Error:", error.message);
+});
 
 tgBot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -552,8 +560,7 @@ class BotSession {
                                                            `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
-                                                           `┃ ⋄ ${toBold("..𝘀𝗹𝗹𝗲𝗮𝗸")}\n` +
-                                                           `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 [𝗻𝗮𝗺𝗲]")}\n` +
+                                                           `┃ ⋄ ${toBold(".𝘀𝗶𝗻𝗵𝗮𝗹𝗮𝘀𝘂𝗯")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
                                                            `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
@@ -661,7 +668,7 @@ class BotSession {
                                         case 'alive':await commands.alive(this.sock, from, msg, this); break;
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
-                                        case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData);break;
+                                        case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
