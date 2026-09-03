@@ -67,8 +67,8 @@ const commands = {
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
     sinhalasub: require('./commands/sinhalasub'),
-    ping: require('./commands/ping')
-    
+    ping: require('./commands/ping'),
+    cinesubz: require('./commands/cinesubz-downloader')
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -672,6 +672,20 @@ class BotSession {
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'ping':await commands.ping(this.sock, from, msg);  break;
+                                        case 'cz':
+                                        case 'cinesubz':
+                                        case 'cz_dl':
+                                        const args = msg.message.conversation?.split(' ').slice(1) || 
+                                        msg.message.extendedTextMessage?.text?.split(' ').slice(1) || [];
+                                        await commands.cinesubz.handler({
+                                        socket: this.sock, // ඔබගේ socket එක
+                                        msg: msg,
+                                        sender: from,      // ඔබගේ sender Jid එක
+                                        command: command,  // 'cz' හෝ 'cinesubz' හෝ 'cz_dl'
+                                        args: args,
+                                        reply: async (text) => await this.sock.sendMessage(from, { text: text })
+                                         });   
+                                    break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
