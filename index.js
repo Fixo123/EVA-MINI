@@ -66,7 +66,9 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
-    sinhalasub: require('./commands/sinhalasub')
+    sinhalasub: require('./commands/sinhalasub'),
+    ping: require('./commands/ping')
+    
 };
 
 const { handleAutoread } = require('./commands/autoread');
@@ -669,6 +671,7 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'sinhalasub':await commands.sinhalasub(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'ping':await commands.ping(this.sock, from, msg);  break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
