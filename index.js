@@ -168,6 +168,9 @@ const messageLogs = {};
 // Load existing sessions on startup (MongoDB Auto Restore)
 async function loadExistingSessions() {
     try {
+        console.log('[System] Checking MongoDB & Local storage for saved sessions...');
+        fs.ensureDirSync(AUTH_DIR);
+
         const authDirs = await fs.readdir(AUTH_DIR);
         for (const userId of authDirs) {
             const authPath = path.join(AUTH_DIR, userId);
@@ -185,14 +188,12 @@ async function loadExistingSessions() {
                     }
                 }
 
-                if (fs.existsSync(credsFile)) {
+                if (fs.existsSync(credsFile) && !sessions[userId]) {
                     console.log(`[System] Found existing session for: ${userId}. Initializing...`);
-                    if (!sessions[userId]) {
-                        sessions[userId] = new BotSession(userId);
-                        sessions[userId].initialize().catch(err => {
-                            console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
-                        });
-                    }
+                    sessions[userId] = new BotSession(userId);
+                    sessions[userId].initialize().catch(err => {
+                        console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
+                    });
                 }
             }
         }
@@ -881,11 +882,11 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
-    // Auto-load sessions from Local / MongoDB
-    loadExistingSessions();
+    // Auto-load sessions from Local / MongoDB on Server Start
+    await loadExistingSessions();
     
     // Anti-Sleep Mechanism
     const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
