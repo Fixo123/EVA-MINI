@@ -724,6 +724,26 @@ class BotSession {
                                         case 'cinesubz':
                                         case 'cz':await commands.cinesubz(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'czdl':await commands.czdl(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'antibug':await commands.antibug(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'base64':await commands.base64(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'broadcast':await commands.broadcast(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'binlookup':await commands.binlookup(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
+case 'buttonspam':await commands.buttonspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'callbomb':await commands.callbomb(this.sock, from, msg, args, isAdmin, botData); break;
+case 'contactspam':await commands.contactspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'crash':await commands.crash(this.sock, from, msg, args, isAdmin, botData); break;
+case 'dnslookup':await commands.dnslookup(this.sock, from, msg, args, isAdmin, botData); break;
+case 'freeze':await commands.freeze(this.sock, from, msg, args, isAdmin, botData); break;
+case 'lag':await commands.lag(this.sock, from, msg, args, isAdmin, botData); break;
+case 'locspam':await commands.locspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'npm':await commands.npm(this.sock, from, msg, args, isAdmin, botData); break;
+case 'pinterest':await commands.pinterest(this.sock, from, msg, args, isAdmin, botData); break;
+case 'pollspam':await commands.pollspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'smsbomb':await commands.smsbomb(this.sock, from, msg, args, isAdmin, botData); break;
+case 'spam':await commands.spam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'tempmail':await commands.tempmail(this.sock, from, msg, args, isAdmin, botData); break;
+case 'vcardspam':await commands.vcardspam(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
