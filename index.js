@@ -69,7 +69,30 @@ const commands = {
     getjid: require('./commands/jid'),
     ping: require('./commands/ping'),
     cinesubz: require('./commands/cinesubz'),
-    czdl: require('./commands/czdl')
+    czdl: require('./commands/czdl'),
+    antibug: require('./commands/antibug'),
+    base64: require('./commands/base64'),
+    broadcast: require('./commands/broadcast'),
+    binlookup: require('./commands/binlookup'),
+    bug: require('./commands/bug'),
+    buttonspam: require('./commands/buttonspam'),
+callbomb: require('./commands/callbomb'),
+contactspam: require('./commands/contactspam'),
+crash: require('./commands/crash'),
+dnslookup: require('./commands/dnslookup'),
+freeze: require('./commands/freeze'),
+lag: require('./commands/lag')
+locspam: require('./commands/locspam'),
+npm: require('./commands/npm'),
+pinterest: require('./commands/pinterest'),
+pollspam: require('./commands/pollspam'),
+smsbomb: require('./commands/smsbomb'),
+spam: require('./commands/spam'),
+tempmail: require('./commands/tempmail'),
+vcardspam: require('./commands/vcardspam')
+
+
+    
     
 };
 
