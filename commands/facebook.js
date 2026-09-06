@@ -9,24 +9,38 @@ async function fbCommand(sock, from, msg, args) {
     }
 
     try {
-        const apiKey = 'e276311658d835109c';
-        const apiUrl = `https://api.nexoracle.com/downloader/facebook?apikey=${apiKey}&url=${encodeURIComponent(fbUrl)}`;
-        const response = await axios.get(apiUrl);
+        // 🌐 නොමිලේ සහ API key නැති SiputZx API එක (හොඳින් වැඩ කරයි)
+        const apiUrl = `https://api.siputzx.my.id/api/d/fb?url=${encodeURIComponent(fbUrl)}`;
+        const response = await axios.get(apiUrl, { timeout: 20000 });
 
-        if (!response.data || !response.data.result || !response.data.result.sd) {
-            return reply('*❌ Invalid or unsupported Facebook video URL.*');
+        // 📦 ප්‍රතිචාරයේ විවිධ keys check කිරීම (HD, SD, හෝ URL)
+        const result = response.data?.data || response.data?.result || response.data;
+        
+        // වීඩියෝ ලින්ක් එක හොයාගැනීම (විවිධ API ව්‍යුහයන්ට ඔරොත්තු දෙන ලෙස)
+        const videoUrl = result?.hd || result?.sd || result?.url || result?.downloadUrl || result?.video;
+        const title = result?.title || 'Facebook Video';
+        const description = result?.description || '';
+
+        // ❌ වීඩියෝ ලින්ක් එක හමු නොවුනොත්
+        if (!videoUrl) {
+            console.log('API Response:', JSON.stringify(response.data, null, 2)); // Debug එකට
+            return reply('*❌ මෙම FB ලින්ක් එකෙන් වීඩියෝව හොයාගන්න බැරි වුණා. ලින්ක් එක හරිද කියලා බලන්න.*');
         }
 
-        const { title, desc, sd } = response.data.result;
-
+        // 📤 වීඩියෝව යැවීම
         await sock.sendMessage(from, {
-            video: { url: sd },
-            caption: `*❒📥 ɴɪᴍᴀ ꜰᴀᴍɪʟʏ ꜰʀᴇᴇ ʙᴏᴛ ꜰʙ ᴠɪᴅᴇᴏ 📥❒*\n📌 *Title:* ${title || 'N/A'}\n📝 *Desc:* ${desc || 'N/A'}`
+            video: { url: videoUrl },
+            caption: `*❒📥 ɴɪᴍᴀ ꜰᴀᴍɪʟʏ ꜰʀᴇᴇ ʙᴏᴛ ꜰʙ ᴠɪᴅᴇᴏ 📥❒*\n\n📌 *Title:* ${title}\n📝 *Desc:* ${description || 'N/A'}\n\n⚡ *Powered by EVA-MINI*`
         }, { quoted: msg });
 
     } catch (error) {
-        console.error('Error downloading Facebook video:', error);
-        reply('❌ Unable to download the Facebook video. Please try again later.');
+        console.error('FB Download Error:', error.message);
+        // Network error එකක් නම් වෙනම message එකක්
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+            reply('⏳ *Request Timeout:* සර්වරයට සම්බන්ධ වෙන්න වැඩි වෙලා ගියා. නැවත උත්සාහ කරන්න.');
+        } else {
+            reply('❌ දැනට FB වීඩියෝව ගේන්න බැරි වුණා. ටික වේලාවකින් නැවත උත්සාහ කරන්න.');
+        }
     }
 }
 
