@@ -1,4 +1,4 @@
-// commands/buttonmenu.js - Interactive Button Menu
+// commands/buttonmenu.js - LIST MENU VERSION (Works on WhatsApp Web)
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 
 module.exports = async (sock, from, msg, args, isAdmin, botData) => {
@@ -16,60 +16,81 @@ module.exports = async (sock, from, msg, args, isAdmin, botData) => {
         } catch (e) {}
 
         // ============================================
-        // SEND BUTTON MESSAGE
+        // SEND LIST MESSAGE (Works everywhere)
         // ============================================
-        const buttonMessage = {
+        const listMessage = {
             text: `🔘 *EVA MINI INTERACTIVE MENU*
 
 👋 *Hello ${msg.pushName || 'User'}!*
 
-📌 *Button Menu Options:*
-
-• 🎵 *Search for a song*
-• 🎬 *Search for a video*
-• 📥 *Download YouTube video*
-• 🤖 *Chat with AI*
-• 🎬 *Search for a movie*
-• 📚 *Get help*
-
-_Press the button you need_ 👇`,
-            footer: '🔘 EVA MINI Interactive Menu',
-            buttons: [
+📌 *Select an option from the menu below:*`,
+            footer: '🔘 EVA MINI Menu',
+            buttonText: '📋 Open Menu',
+            sections: [
                 {
-                    buttonId: 'menu_song',
-                    buttonText: { displayText: '🎵 Song' },
-                    type: 1
+                    title: '🎵 Music & Video',
+                    rows: [
+                        {
+                            title: '🎵 Search for a song',
+                            rowId: 'menu_song',
+                            description: 'Find your favorite songs'
+                        },
+                        {
+                            title: '🎬 Search for a video',
+                            rowId: 'menu_video',
+                            description: 'Find videos online'
+                        },
+                        {
+                            title: '📥 Download YouTube video',
+                            rowId: 'menu_yt',
+                            description: 'Download from YouTube'
+                        }
+                    ]
                 },
                 {
-                    buttonId: 'menu_video',
-                    buttonText: { displayText: '🎬 Video' },
-                    type: 1
+                    title: '🤖 AI & Movies',
+                    rows: [
+                        {
+                            title: '🤖 Chat with AI',
+                            rowId: 'menu_ai',
+                            description: 'Ask anything to AI'
+                        },
+                        {
+                            title: '🎬 Search for a movie',
+                            rowId: 'menu_movie',
+                            description: 'Find movies with subtitles'
+                        }
+                    ]
                 },
                 {
-                    buttonId: 'menu_yt',
-                    buttonText: { displayText: '📥 YouTube' },
-                    type: 1
-                },
-                {
-                    buttonId: 'menu_ai',
-                    buttonText: { displayText: '🤖 AI Chat' },
-                    type: 1
+                    title: '📚 Help & Support',
+                    rows: [
+                        {
+                            title: '📚 Get help',
+                            rowId: 'menu_help',
+                            description: 'Get assistance'
+                        },
+                        {
+                            title: '📋 Full Menu',
+                            rowId: 'menu_full',
+                            description: 'See all commands'
+                        }
+                    ]
                 }
-            ],
-            headerType: 1
+            ]
         };
 
         try {
-            await sock.sendMessage(from, buttonMessage);
+            await sock.sendMessage(from, listMessage);
         } catch (error) {
-            console.log('Button message failed, sending normal text:', error.message);
+            console.log('List message failed:', error.message);
+            // Fallback: Send normal text
             await sock.sendMessage(from, {
-                text: `🔘 *EVA MINI INTERACTIVE MENU*
+                text: `🔘 *EVA MINI MENU*
 
 👋 Hello ${msg.pushName || 'User'}!
 
-Your browser doesn't support buttons.
-Please use these commands:
+📌 *Commands:*
 
 🎵 .song [song name] - Search for a song
 🎬 .video [video name] - Search for a video
