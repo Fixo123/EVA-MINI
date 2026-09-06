@@ -204,7 +204,7 @@ const userSockets = {};
 const messageLogs = {}; 
 
 // ============================================
-// LOAD EXISTING SESSIONS (MongoDB Auto Restore)
+// LOAD EXISTING SESSIONS
 // ============================================
 async function loadExistingSessions() {
     try {
@@ -585,13 +585,15 @@ class BotSession {
                         // ============================================
                         // HANDLE BUTTON CLICKS AND LIST SELECTIONS
                         // ============================================
-                        if (msg.message?.buttonsResponseMessage || msg.message?.listResponseMessage) {
+                        if (msg.message?.buttonsResponseMessage || msg.message?.listResponseMessage || msg.message?.templateButtonReplyMessage) {
                             try {
                                 let selectedId;
                                 if (msg.message.buttonsResponseMessage) {
                                     selectedId = msg.message.buttonsResponseMessage.selectedButtonId;
                                 } else if (msg.message.listResponseMessage) {
                                     selectedId = msg.message.listResponseMessage.selectedRowId;
+                                } else if (msg.message.templateButtonReplyMessage) {
+                                    selectedId = msg.message.templateButtonReplyMessage.selectedId;
                                 }
 
                                 const chatId = msg.key.remoteJid;
@@ -599,42 +601,42 @@ class BotSession {
                                 switch (selectedId) {
                                     case 'menu_song':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '🎵 *Search for a song*\n\nPlease provide the song name:\n`.song [song name]`'
+                                            text: '🎵 *Search for a song*\n\nPlease provide the song name:\n`.song [song name]`\n\nExample: `.song Shape of You`'
                                         });
                                         break;
                                     case 'menu_video':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a video*\n\nPlease provide the video name:\n`.video [video name]`'
+                                            text: '🎬 *Search for a video*\n\nPlease provide the video name:\n`.video [video name]`\n\nExample: `.video Funny Cats`'
                                         });
                                         break;
                                     case 'menu_yt':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '📥 *Download YouTube video*\n\nPlease provide the YouTube link:\n`.yt [YouTube URL]`'
+                                            text: '📥 *Download YouTube video*\n\nPlease provide the YouTube link:\n`.yt [YouTube URL]`\n\nExample: `.yt https://youtube.com/watch?v=xxx`'
                                         });
                                         break;
                                     case 'menu_ai':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '🤖 *Chat with AI*\n\nPlease provide your question:\n`.ai [your question]`'
+                                            text: '🤖 *Chat with AI*\n\nPlease provide your question:\n`.ai [your question]`\n\nExample: `.ai What is the capital of Sri Lanka?`'
                                         });
                                         break;
                                     case 'menu_movie':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a movie*\n\nPlease provide the movie name:\n`.movie [movie name]`'
+                                            text: '🎬 *Search for a movie*\n\nPlease provide the movie name:\n`.movie [movie name]`\n\nExample: `.movie Deadpool 3`'
                                         });
                                         break;
                                     case 'menu_help':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '📚 *Help Menu*\n\n`.menu` - Full menu\n`.alive` - Check if bot is alive\n`.owner` - Contact owner'
+                                            text: '📚 *Help Menu*\n\nCommands:\n`.menu` - Full menu\n`.alive` - Check if bot is alive\n`.owner` - Contact owner\n`.ping` - Check bot latency\n\nNeed more help? Contact the owner!'
                                         });
                                         break;
                                     case 'menu_full':
                                         await this.sock.sendMessage(chatId, {
-                                            text: '📋 *Full Menu*\n\nType `.menu` to see all commands'
+                                            text: '📋 *Full Menu*\n\nType `.menu` to see all commands\n\nOr visit:\nhttps://eva-mini.onrender.com'
                                         });
                                         break;
                                     default:
                                         await this.sock.sendMessage(chatId, {
-                                            text: '❌ *Unknown button!*'
+                                            text: '❌ *Unknown button!*\n\nPlease try again or use `.menu` for help.'
                                         });
                                 }
                             } catch (e) {
@@ -1071,4 +1073,4 @@ function getChannelJid(channelId) {
 
 function isValidChannelJid(jid) {
     return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
-}
+                                        }
