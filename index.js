@@ -10,9 +10,7 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const P = require('pino');
 const { OpenAI } = require('openai');
 
-// ============================================
-// MONGODB DATABASE HELPERS
-// ============================================
+// MongoDB Database Helpers Import කිරීම
 const { 
     connectDB, 
     saveSessionToMongoDB, 
@@ -20,12 +18,10 @@ const {
     deleteSessionFromMongoDB 
 } = require('./lib/database');
 
-// Connect to MongoDB
+// MongoDB Database එක Connect කිරීම
 connectDB();
 
-// ============================================
-// IMPORT COMMANDS
-// ============================================
+// Import Commands
 const commands = {
     song: require('./commands/song'),
     video: require('./commands/video'),
@@ -48,6 +44,7 @@ const commands = {
     tiktok: require('./commands/tiktok'),
     dp: require('./commands/dp'),
     vv: require('./commands/vv'),
+
     joke: require('./commands/joke'),
     meme: require('./commands/meme'),
     groupinfo: require('./commands/groupinfo'),
@@ -55,8 +52,11 @@ const commands = {
     mf: require('./commands/mf'),
     translate: require('./commands/translate').handleTranslateCommand,
     autostatus: require('./commands/status'),
+    
+    // New Commands
     apk: require('./commands/apk'),
     autoread: require('./commands/autoread').autoreadCommand,
+
     character: require('./commands/character'),
     emojimix: require('./commands/emojimix'),
     facebook: require('./commands/facebook'),
@@ -67,6 +67,7 @@ const commands = {
     alive: require('./commands/alive'),
     jid: require('./commands/jid'),
     getjid: require('./commands/jid'),
+    ping: require('./commands/ping'),
     cinesubz: require('./commands/cinesubz'),
     czdl: require('./commands/czdl'),
     antibug: require('./commands/antibug'),
@@ -76,38 +77,37 @@ const commands = {
     bug: require('./commands/bug'),
     buttonspam: require('./commands/buttonspam'),
     callbomb: require('./commands/callbomb'),
-    contactspam: require('./commands/contactspam'),
-    crash: require('./commands/crash'),
-    dnslookup: require('./commands/dnslookup'),
-    freeze: require('./commands/freeze'),
-    lag: require('./commands/lag'),
-    locspam: require('./commands/locspam'),
-    npm: require('./commands/npm'),
-    pinterest: require('./commands/pinterest'),
-    pollspam: require('./commands/pollspam'),
-    smsbomb: require('./commands/smsbomb'),
-    spam: require('./commands/spam'),
-    tempmail: require('./commands/tempmail'),
-    vcardspam: require('./commands/vcardspam'),
-    buttonmenu: require('./commands/buttonmenu')
+contactspam: require('./commands/contactspam'),
+crash: require('./commands/crash'),
+dnslookup: require('./commands/dnslookup'),
+freeze: require('./commands/freeze'),
+lag: require('./commands/lag'),
+locspam: require('./commands/locspam'),
+npm: require('./commands/npm'),
+pinterest: require('./commands/pinterest'),
+pollspam: require('./commands/pollspam'),
+smsbomb: require('./commands/smsbomb'),
+spam: require('./commands/spam'),
+tempmail: require('./commands/tempmail'),
+vcardspam: require('./commands/vcardspam')
+
+
+    
+    
 };
 
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
 const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
 
-// ============================================
-// EXPRESS APP SETUP
-// ============================================
 const app = express();
 const server = http.createServer(app);
 
-// ============================================
-// TELEGRAM BOT SETUP
-// ============================================
+// Telegram Bot Setup
 const tgToken = "8929603277:AAF0QkVClIVLkVGdP28ZeAMSHZUw_cxaxKI";
 const tgBot = new TelegramBot(tgToken, { polling: true });
 
+// Telegram Polling Conflict Error Handling
 tgBot.on('polling_error', (error) => {
     if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
         return;
@@ -120,7 +120,7 @@ tgBot.on('message', async (msg) => {
     const text = msg.text;
 
     if (text === '/start') {
-        await tgBot.sendMessage(chatId, "WELCOME TO EVA MINI-BOT\n\nENTER YOUR WHATSAPP NUMBER\n(Example: 94703945265)");
+        await tgBot.sendMessage(chatId, "𝗪𝗘𝗟𝗖𝗢𝗠𝗘 𝗧𝗢 𝗘𝗩𝗔 𝗠𝗜𝗡𝗜-𝗕𝗢𝗧\n\n𝗘𝗡𝗧𝗘𝗥 𝗬𝗢𝗨𝗥 𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣 𝗡𝗨𝗠𝗕𝗘𝗥\n(Example: 94703945265)");
         return;
     }
 
@@ -147,17 +147,11 @@ tgBot.on('message', async (msg) => {
     }
 });
 
-// ============================================
-// SOCKET.IO SETUP
-// ============================================
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
 });
 
-// ============================================
-// OPENAI SETUP
-// ============================================
 let openai = null;
 if (process.env.OPENAI_API_KEY) {
     try {
@@ -168,9 +162,6 @@ if (process.env.OPENAI_API_KEY) {
     } catch (e) {}
 }
 
-// ============================================
-// EXPRESS MIDDLEWARE
-// ============================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -179,9 +170,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ============================================
-// BOT DATA MANAGEMENT
-// ============================================
 const AUTH_DIR = './auth_info';
 const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
@@ -196,16 +184,11 @@ function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
 }
 
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
 const sessions = {}; 
 const userSockets = {}; 
 const messageLogs = {}; 
 
-// ============================================
-// LOAD EXISTING SESSIONS
-// ============================================
+// Load existing sessions on startup (MongoDB Auto Restore)
 async function loadExistingSessions() {
     try {
         console.log('[System] Checking MongoDB & Local storage for saved sessions...');
@@ -218,6 +201,7 @@ async function loadExistingSessions() {
             if (stats.isDirectory()) {
                 const credsFile = path.join(authPath, 'creds.json');
                 
+                // Local File එක නැතොත් MongoDB එකෙන් Restore කිරීම
                 if (!fs.existsSync(credsFile)) {
                     const mongoSession = await getSessionFromMongoDB(userId);
                     if (mongoSession) {
@@ -241,21 +225,15 @@ async function loadExistingSessions() {
     }
 }
 
-// ============================================
-// BOLD TEXT FUNCTION
-// ============================================
 const toBold = (text) => {
     const boldChars = {
         'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶', 'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿', 's': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
-        'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝗦', 'T': '𝗧', 'U': '𝗨', 'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭',
+        'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
         '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
     };
     return text.split('').map(c => boldChars[c] || c).join('');
 };
 
-// ============================================
-// BOT SESSION CLASS
-// ============================================
 class BotSession {
     constructor(userId) {
         this.userId = userId;
@@ -311,19 +289,16 @@ class BotSession {
                 try {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     await this.sock.sendMessage(botNumber, { 
-                        text: "EVA MINI-BOT IS ONLINE 🚀\n\n_24/7 Active System Working..._" 
+                        text: "𝗘𝗩𝗔 𝗠𝗜𝗡𝗜-𝗕𝗢𝗧 𝗜𝗦 𝗢𝗡𝗟𝗜𝗡𝗘 🚀\n\n_24/7 Active System Working..._" 
                     });
                     this.sendLog("24/7 Keep-alive message sent to own DM. ✅", "success");
                 } catch (e) {
                     this.sendLog("Keep-alive failed: " + e.message, "error");
                 }
             }
-        }, 60 * 60 * 1000);
+        }, 60 * 60 * 1000); // Once per hour
     }
 
-    // ============================================
-    // INITIALIZE FUNCTION
-    // ============================================
     async initialize(pairingNumber = null) {
         if (this.isInitializing) {
             this.sendLog("Initialization already in progress...", "info");
@@ -333,6 +308,7 @@ class BotSession {
         try {
             const { version } = await fetchLatestBaileysVersion();
 
+            // Check & Restore Auth Credentials from MongoDB
             fs.ensureDirSync(this.authPath);
             const credsFile = path.join(this.authPath, 'creds.json');
             if (!fs.existsSync(credsFile)) {
@@ -392,6 +368,7 @@ class BotSession {
                     }
                     return message;
                 },
+
                 generateHighQualityLinkPreview: true,
             });
 
@@ -404,7 +381,7 @@ class BotSession {
                         this.sendLog(`🔑 Pairing Code: ${code}`, 'success');
                         
                         if (this.tgChatId) {
-                            await tgBot.sendMessage(this.tgChatId, "🔑 YOUR PAIRING CODE: " + code + "\n\n_Enter this code in your WhatsApp to connect._");
+                            await tgBot.sendMessage(this.tgChatId, "🔑 𝗬𝗢𝗨𝗥 𝗣𝗔𝗜𝗥𝗜𝗡𝗚 𝗖𝗢𝗗𝗘: " + code + "\n\n_Enter this code in your WhatsApp to connect._");
                         }
 
                         const socketId = userSockets[this.userId];
@@ -418,7 +395,7 @@ class BotSession {
                 }
             }
 
-            // Save creds to Local File System and sync to MongoDB
+            // Save creds to Local File System and sync to MongoDB with delay
             this.sock.ev.on('creds.update', async () => {
                 await saveCreds();
                 setTimeout(async () => {
@@ -436,29 +413,25 @@ class BotSession {
                 }, 2000);
             });
 
-            // Call events
             this.sock.ev.on('call', async (calls) => {
                 if (botData.antiCall[this.userId]) {
                     for (const call of calls) {
                         if (call.status === 'offer') {
                             try {
                                 await this.sock.rejectCall(call.id, call.from);
-                                await this.sock.sendMessage(call.from, { text: "⚠️ ANTI-CALL: I don't accept calls. Please send a message instead." });
+                                await this.sock.sendMessage(call.from, { text: "⚠️ *ANTI-CALL:* I don't accept calls. Please send a message instead." });
                             } catch (e) {}
                         }
                     }
                 }
             });
 
-            // ============================================
-            // MESSAGES UPSERT
-            // ============================================
             this.sock.ev.on('messages.upsert', async (m) => {
                 if (m.type !== 'notify') return;
                 
                 await Promise.all(m.messages.map(async (msg) => {
                     if (msg.messageStubType === 1 || msg.messageStubType === 2) {
-                        this.sendLog('Received an undecryptable message.', 'warning');
+                        this.sendLog('Received an undecryptable message. This might be due to a session conflict.', 'warning');
                     }
 
                     try {
@@ -488,10 +461,13 @@ class BotSession {
                         if (!isMe && !isStatus) {
                             try {
                                 await this.sock.sendPresenceUpdate('recording', from);
+
                                 setTimeout(async () => {
                                     await this.sock.sendPresenceUpdate('paused', from);
                                 }, 4000);
-                            } catch (e) {}
+                            } catch (e) {
+                                console.error("Presence update error:", e);
+                            }
                         }
 
                         if (this.processedMessages.has(msgId)) return;
@@ -582,69 +558,6 @@ class BotSession {
 
                         if (!this.isPublic && !isOwner) return;
 
-                        // ============================================
-                        // HANDLE BUTTON CLICKS AND LIST SELECTIONS
-                        // ============================================
-                        if (msg.message?.buttonsResponseMessage || msg.message?.listResponseMessage || msg.message?.templateButtonReplyMessage) {
-                            try {
-                                let selectedId;
-                                if (msg.message.buttonsResponseMessage) {
-                                    selectedId = msg.message.buttonsResponseMessage.selectedButtonId;
-                                } else if (msg.message.listResponseMessage) {
-                                    selectedId = msg.message.listResponseMessage.selectedRowId;
-                                } else if (msg.message.templateButtonReplyMessage) {
-                                    selectedId = msg.message.templateButtonReplyMessage.selectedId;
-                                }
-
-                                const chatId = msg.key.remoteJid;
-                                
-                                switch (selectedId) {
-                                    case 'menu_song':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎵 *Search for a song*\n\nPlease provide the song name:\n`.song [song name]`\n\nExample: `.song Shape of You`'
-                                        });
-                                        break;
-                                    case 'menu_video':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a video*\n\nPlease provide the video name:\n`.video [video name]`\n\nExample: `.video Funny Cats`'
-                                        });
-                                        break;
-                                    case 'menu_yt':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📥 *Download YouTube video*\n\nPlease provide the YouTube link:\n`.yt [YouTube URL]`\n\nExample: `.yt https://youtube.com/watch?v=xxx`'
-                                        });
-                                        break;
-                                    case 'menu_ai':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🤖 *Chat with AI*\n\nPlease provide your question:\n`.ai [your question]`\n\nExample: `.ai What is the capital of Sri Lanka?`'
-                                        });
-                                        break;
-                                    case 'menu_movie':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a movie*\n\nPlease provide the movie name:\n`.movie [movie name]`\n\nExample: `.movie Deadpool 3`'
-                                        });
-                                        break;
-                                    case 'menu_help':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📚 *Help Menu*\n\nCommands:\n`.menu` - Full menu\n`.alive` - Check if bot is alive\n`.owner` - Contact owner\n`.ping` - Check bot latency\n\nNeed more help? Contact the owner!'
-                                        });
-                                        break;
-                                    case 'menu_full':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📋 *Full Menu*\n\nType `.menu` to see all commands\n\nOr visit:\nhttps://eva-mini.onrender.com'
-                                        });
-                                        break;
-                                    default:
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '❌ *Unknown button!*\n\nPlease try again or use `.menu` for help.'
-                                        });
-                                }
-                            } catch (e) {
-                                console.error('Button response error:', e);
-                            }
-                            return;
-                        }
-
                         if (cmd.startsWith('.')) {
                             const commandName = cmd.slice(1).split(' ')[0];
                             (async () => {
@@ -660,84 +573,83 @@ class BotSession {
                    `┃ 🤖 ${toBold("Status:")} ${toBold("Online ✅")}\n` +
                    `┃ ⚙️ ${toBold("Mode:")} ${this.isPublic ? toBold('Public 🌍') : toBold('Private 🔐')}\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("USER COMMANDS")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".autoreacts [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".antilink [on/off/kick]")}\n` +
-                   `┃ ⋄ ${toBold(".antidelete [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".ai [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".Alive")}\n` +
-                   `┃ ⋄ ${toBold(".vv")}\n` +
-                   `┃ ⋄ ${toBold(".owner")}\n` +
-                   `┃ ⋄ ${toBold(".dp")}\n` +
-                   `┃ ⋄ ${toBold(".ping")}\n` +
-                   `┃ ⋄ ${toBold(".translate (text)")}\n` +
-                   `┃ ⋄ ${toBold(".npm [package]")}\n` +
-                   `┃ ⋄ ${toBold(".pinterest [search]")}\n` +
-                   `┃ ⋄ ${toBold(".dnslookup [domain]")}\n` +
-                   `┃ ⋄ ${toBold(".tempmail")}\n` +
-                   `┃ ⋄ ${toBold(".binlookup [6digits]")}\n` +
-                   `┃ ⋄ ${toBold(".base64 [enc/dec] [text]")}\n` +
-                   `┃ ⋄ ${toBold(".buttonmenu")} - Interactive buttons\n` +
+                   `╭━━━〔 ${toBold("𝗨𝗦𝗘𝗥 𝗖𝗠𝗗𝗦")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗰𝘁𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 [𝗼𝗻/𝗼𝗳𝗳/𝗸𝗶𝗰𝗸]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗱𝗲𝗹𝗲𝘁𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗶 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗔𝗹𝗶𝘃𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝘃𝘃")}\n` +
+                   `┃ ⋄ ${toBold(".𝗼𝘄𝗻𝗲𝗿")}\n` +
+                   `┃ ⋄ ${toBold(".𝗱𝗽")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝗴")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗿𝗮𝗻𝘀𝗹𝗮𝘁𝗲 (𝘁𝗲𝘅𝘁)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗻𝗽𝗺 [𝗽𝗮𝗰𝗸𝗮𝗴𝗲]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗶𝗻𝘁𝗲𝗿𝗲𝘀𝘁 [𝘀𝗲𝗮𝗿𝗰𝗵]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗱𝗻𝘀𝗹𝗼𝗼𝗸𝘂𝗽 [𝗱𝗼𝗺𝗮𝗶𝗻]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗲𝗺𝗽𝗺𝗮𝗶𝗹")}\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝗶𝗻𝗹𝗼𝗼𝗸𝘂𝗽 [𝟲𝗱𝗶𝗴𝗶𝘁𝘀]")} - BIN lookup\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝗮𝘀𝗲𝟲𝟰 [𝗲𝗻𝗰/𝗱𝗲𝗰] [𝘁𝗲𝘅𝘁]")} - Base64 tool\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("TOOLS")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".apk (name)")}\n` +
-                   `┃ ⋄ ${toBold(".jid")}\n` +
-                   `┃ ⋄ ${toBold(".facebook (url)")}\n` +
-                   `┃ ⋄ ${toBold(".tiktok (url)")}\n` +
-                   `┃ ⋄ ${toBold(".insta (url)")}\n` +
-                   `┃ ⋄ ${toBold(".song (name)")}\n` +
-                   `┃ ⋄ ${toBold(".video (name)")}\n` +
-                   `┃ ⋄ ${toBold(".joke")}\n` +
-                   `┃ ⋄ ${toBold(".meme")}\n` +
-                   `┃ ⋄ ${toBold(".emojimix (e1+e2)")}\n` +
-                   `┃ ⋄ ${toBold(".character (mention)")}\n` +
-                   `┃ ⋄ ${toBold(".gdrive (url)")}\n` +
-                   `┃ ⋄ ${toBold(".mf (url)")}\n` +
-                   `┃ ⋄ ${toBold(".cinesubz (movie)")}\n` +
-                   `┃ ⋄ ${toBold(".movie (name)")}\n` +
-                   `┃ ⋄ ${toBold(".broadcast [message]")}\n` +
+                   `╭━━━〔 ${toBold("𝗧𝗢𝗢𝗟𝗦")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗽𝗸 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗷𝗶𝗱")}\n` +
+                   `┃ ⋄ ${toBold(".𝗳𝗮𝗰𝗲𝗯𝗼𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗶𝗸𝘁𝗼𝗸 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗶𝗻𝘀𝘁𝗮 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗼𝗻𝗴 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝘃𝗶𝗱𝗲𝗼 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗷𝗼𝗸𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗲𝗺𝗼𝗷𝗶𝗺𝗶𝘅 (𝗲𝟭+𝗲𝟮)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗵𝗮𝗿𝗮𝗰𝘁𝗲𝗿 (𝗺𝗲𝗻𝘁𝗶𝗼𝗻)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗴𝗱𝗿𝗶𝘃𝗲 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗳 (𝘂𝗿𝗹)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗶𝗻𝗲𝘀𝘂𝗯𝘇 (𝗺𝗼𝘃𝗶𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗼𝘃𝗶𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝗿𝗼𝗮𝗱𝗰𝗮𝘀𝘁 [𝗺𝗲𝘀𝘀𝗮𝗴𝗲]")} - Mass message\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("BUG/SPAM MENU")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".antibug [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".bug [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".crash [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".crashloop [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".memoryleak [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".freeze [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".lag [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".buttonspam [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".contactspam [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".pollspam [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".vcardspam [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".locspam [@number]")}\n` +
-                   `┃ ⋄ ${toBold(".callbomb [number]")}\n` +
-                   `┃ ⋄ ${toBold(".smsbomb [number]")}\n` +
-                   `┃ ⋄ ${toBold(".spam [count]")}\n` +
+                   `╭━━━〔 ${toBold("𝗕𝗨𝗚/𝗦𝗣𝗔𝗠 𝗠𝗘𝗡𝗨")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗯𝘂𝗴 [𝗼𝗻/𝗼𝗳𝗳]")} - Anti-bug protection\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝘂𝗴 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗿𝗮𝘀𝗵𝗹𝗼𝗼𝗽 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗺𝗲𝗺𝗼𝗿𝘆𝗹𝗲𝗮𝗸 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗳𝗿𝗲𝗲𝘇𝗲 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗹𝗮𝗴 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗯𝘂𝘁𝘁𝗼𝗻𝘀𝗽𝗮𝗺 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗼𝗻𝘁𝗮𝗰𝘁𝘀𝗽𝗮𝗺 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗼𝗹𝗹𝘀𝗽𝗮𝗺 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘃𝗰𝗮𝗿𝗱𝘀𝗽𝗮𝗺 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗹𝗼𝗰𝘀𝗽𝗮𝗺 [@𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗰𝗮𝗹𝗹𝗯𝗼𝗺𝗯 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗺𝘀𝗯𝗼𝗺𝗯 [𝗻𝘂𝗺𝗯𝗲𝗿]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗽𝗮𝗺 [𝗰𝗼𝘂𝗻𝘁]")}\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `╭━━━〔 ${toBold("ADMIN")} 〕━━━┈⊷\n` +
-                   `┃ ⋄ ${toBold(".private")}\n` +
-                   `┃ ⋄ ${toBold(".public")}\n` +
-                   `┃ ⋄ ${toBold(".autoread [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".status [on/off/seen/like/download/system]")}\n` +
-                   `┃ ⋄ ${toBold(".hack")}\n` +
-                   `┃ ⋄ ${toBold(".hidetag")}\n` +
-                   `┃ ⋄ ${toBold(".tagall")}\n` +
-                   `┃ ⋄ ${toBold(".setname (name)")}\n` +
-                   `┃ ⋄ ${toBold(".anticall [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".kickoffline [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".antistatus [on/off]")}\n` +
-                   `┃ ⋄ ${toBold(".groupinfo")}\n` +
-                   `┃ ⋄ ${toBold(".accept")}\n` +
+                   `╭━━━〔 ${toBold("𝗔𝗗𝗠𝗜𝗡")} 〕━━━┈⊷\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝗿𝗶𝘃𝗮𝘁𝗲")}\n` +
+                   `┃ ⋄ ${toBold(".𝗽𝘂𝗯𝗹𝗶𝗰")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳/𝘀𝗲𝗲𝗻/𝗹𝗶𝗸𝗲/𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱/𝘀𝘆𝘀𝘁𝗲𝗺]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗵𝗮𝗰𝗸")}\n` +
+                   `┃ ⋄ ${toBold(".𝗵𝗶𝗱𝗲𝘁𝗮𝗴")}\n` +
+                   `┃ ⋄ ${toBold(".𝘁𝗮𝗴𝗮𝗹𝗹")}\n` +
+                   `┃ ⋄ ${toBold(".𝘀𝗲𝘁𝗻𝗮𝗺𝗲 (𝗻𝗮𝗺𝗲)")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝗰𝗮𝗹𝗹 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗸𝗶𝗰𝗸𝗼𝗳𝗳𝗹𝗶𝗻𝗲 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗻𝘁𝗶𝘀𝘁𝗮𝘁𝘂𝘀 [𝗼𝗻/𝗼𝗳𝗳]")}\n` +
+                   `┃ ⋄ ${toBold(".𝗴𝗿𝗼𝘂𝗽𝗶𝗻𝗳𝗼")}\n` +
+                   `┃ ⋄ ${toBold(".𝗮𝗰𝗰𝗲𝗽𝘁")}\n` +
                    `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                   `🤖 ${toBold("Active Features:")}\n` +
-                   `• ${toBold("AI:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
-                   `• ${toBold("Auto-React:")} ${this.autoReact ? '✅' : '❌'}\n` +
-                   `• ${toBold("Anti-Delete:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
-                   `• ${toBold("Auto-Status:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n` +
-                   `• ${toBold("Anti-Bug:")} ${botData.antiBug ? '✅' : '❌'}\n\n` +
-                   `🔗 ${toBold("Website Link:")}\n` +
+                   `🤖 ${toBold("𝗔𝗰𝘁𝗶𝘃𝗲 𝗙𝗲𝗮𝘁𝘂𝗿𝗲:")}\n` +
+                   `• ${toBold("𝗔𝗜:")} ${this.aiEnabled ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗥𝗲𝗮𝗰𝘁:")} ${this.autoReact ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝗻𝘁𝗶-𝗗𝗲𝗹𝗲𝘁𝗲:")} ${botData.antiDelete[this.userId] ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝘂𝘁𝗼-𝗦𝘁𝗮𝘁𝘂𝘀:")} ${(botData.statusSettings[this.userId] && botData.statusSettings[this.userId].autoStatus) ? '✅' : '❌'}\n` +
+                   `• ${toBold("𝗔𝗻𝘁𝗶-𝗕𝘂𝗴:")} ${botData.antiBug ? '✅' : '❌'}\n\n` +
+                   `🔗 ${toBold("𝗪𝗲𝗯𝘀𝗶𝘁𝗲 𝗟𝗶𝗻𝗸:")}\n` +
                    `> *https://eva-mini.onrender.com/*\n` +
-                   `⚡ ${toBold("POWERED BY: FIXO DEV")}`;
+                   `⚡ ${toBold("𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬: 𝗙𝗜𝗫𝗢 𝗗𝗘𝗩")}`;
 
                                             try {
                                                 await this.sock.sendMessage(from, { image: { url: 'https://files.catbox.moe/4oo2jh.png' }, caption: menuText });
@@ -795,8 +707,10 @@ class BotSession {
                                         case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
                                         case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'translate': case 'trt': await commands.translate(this.sock, from, msg); break;
+                                        
                                         case 'apk': await commands.apk(this.sock, from, msg); break;
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
+
                                         case 'character': await commands.character(this.sock, from, msg); break;
                                         case 'emojimix': await commands.emojimix(this.sock, from, msg); break;
                                         case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
@@ -806,33 +720,30 @@ class BotSession {
                                         case 'jid':
                                         case 'getjid':await commands.jid(this.sock, from, msg, args); break;
                                         case 'boom':await commands.boom(this.sock, from, msg); break;
+                                        case 'ping':await commands.ping(this.sock, from, msg);  break;
                                         case 'cinesubz':
                                         case 'cz':await commands.cinesubz(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'czdl':await commands.czdl(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'antibug':await commands.antibug(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
-                                        case 'base64':await commands.base64(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
-                                        case 'broadcast':await commands.broadcast(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
-                                        case 'binlookup':await commands.binlookup(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
-                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'buttonspam':await commands.buttonspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'callbomb':await commands.callbomb(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'contactspam':await commands.contactspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'crash':await commands.crash(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'dnslookup':await commands.dnslookup(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'freeze':await commands.freeze(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'lag':await commands.lag(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'locspam':await commands.locspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'npm':await commands.npm(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'pinterest':await commands.pinterest(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'pollspam':await commands.pollspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'smsbomb':await commands.smsbomb(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'spam':await commands.spam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'tempmail':await commands.tempmail(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'vcardspam':await commands.vcardspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'buttonmenu':
-                                        case 'btm':
-                                            await commands.buttonmenu(this.sock, from, msg, args, isAdmin, botData);
-                                            break;
+case 'base64':await commands.base64(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'broadcast':await commands.broadcast(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'binlookup':await commands.binlookup(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
+case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
+case 'buttonspam':await commands.buttonspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'callbomb':await commands.callbomb(this.sock, from, msg, args, isAdmin, botData); break;
+case 'contactspam':await commands.contactspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'crash':await commands.crash(this.sock, from, msg, args, isAdmin, botData); break;
+case 'dnslookup':await commands.dnslookup(this.sock, from, msg, args, isAdmin, botData); break;
+case 'freeze':await commands.freeze(this.sock, from, msg, args, isAdmin, botData); break;
+case 'lag':await commands.lag(this.sock, from, msg, args, isAdmin, botData); break;
+case 'locspam':await commands.locspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'npm':await commands.npm(this.sock, from, msg, args, isAdmin, botData); break;
+case 'pinterest':await commands.pinterest(this.sock, from, msg, args, isAdmin, botData); break;
+case 'pollspam':await commands.pollspam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'smsbomb':await commands.smsbomb(this.sock, from, msg, args, isAdmin, botData); break;
+case 'spam':await commands.spam(this.sock, from, msg, args, isAdmin, botData); break;
+case 'tempmail':await commands.tempmail(this.sock, from, msg, args, isAdmin, botData); break;
+case 'vcardspam':await commands.vcardspam(this.sock, from, msg, args, isAdmin, botData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -845,9 +756,6 @@ class BotSession {
                 }));
             });
 
-            // ============================================
-            // PRESENCE UPDATE
-            // ============================================
             this.sock.ev.on('presence.update', async (json) => {
                 try {
                     const { id, presences } = json;
@@ -857,6 +765,7 @@ class BotSession {
                         const userPresence = presences[id].lastKnownPresence;
                         if (userPresence === 'composing') {
                             await this.sock.sendPresenceUpdate('recording', id);
+                            
                             setTimeout(async () => {
                                 await this.sock.sendPresenceUpdate('paused', id);
                             }, 5000);
@@ -867,9 +776,6 @@ class BotSession {
                 }
             });
 
-            // ============================================
-            // CONNECTION UPDATE
-            // ============================================
             this.sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
                 if (qr) {
@@ -886,7 +792,7 @@ class BotSession {
                     const statusCode = (lastDisconnect.error)?.output?.statusCode;
                     
                     if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-                        this.sendLog('Session expired or logged out. Clearing local and DB auth data...', 'error');
+                        this.sendLog('Session expired or logged out. Clearing local and DB auth data to allow fresh pairing...', 'error');
                         try {
                             await deleteSessionFromMongoDB(this.userId);
                             if (fs.existsSync(this.authPath)) {
@@ -913,7 +819,7 @@ class BotSession {
                     this.isConnected = true;
                     this.isInitializing = false;
                     
-                    // Force save creds to MongoDB
+                    // Force save creds to MongoDB immediately on open
                     try {
                         const credsPath = path.join(this.authPath, 'creds.json');
                         if (fs.existsSync(credsPath)) {
@@ -956,7 +862,7 @@ class BotSession {
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
                     
                     if (this.tgChatId) {
-                        await tgBot.sendMessage(this.tgChatId, "✅ WHATSAPP CONNECTED SUCCESSFULLY!\n\nYour bot is now active.");
+                        await tgBot.sendMessage(this.tgChatId, "✅ 𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗘𝗗 𝗦𝗨𝗖𝗖𝗘𝗦𝗦𝗙𝗨𝗟𝗟𝗬!\n\nYour bot is now active.");
                     }
 
                     this.sendLog(`Bot ${botName} is online.`, 'success');
@@ -966,7 +872,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("☁️ ✨ I'm using best bot EVA MINI ✨ ☁️", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("​☁️ ✨ 𝘐'𝘮 𝘶𝘴𝘪𝘯𝘨 𝘣𝘦𝘴𝘵 𝘣𝘰𝘵 𝘌𝘝𝗔 𝘔𝘐𝘝𝘐 ✨ ☁️", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! ✅", "success");
                         } catch (e) {
@@ -975,7 +881,7 @@ class BotSession {
                     }, 5000);
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
-                        await this.sock.sendMessage(botNumber, { text: "BOT CONNECTED SUCCESSFULLY ✅\n\nType .menu to see commands." });
+                        await this.sock.sendMessage(botNumber, { text: "𝗕𝗢𝗧 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗘𝗗 𝗦𝗨𝗖𝗖𝗘𝗦𝗦𝗙𝗨𝗟𝗟𝗬 ✅\n\nType .menu to see commands." });
                         this.lastConnectMessageTime = Date.now();
                     }
                 }
@@ -989,9 +895,6 @@ class BotSession {
     }
 }
 
-// ============================================
-// SOCKET.IO CONNECTIONS
-// ============================================
 io.on('connection', (socket) => {
     socket.on('set-user', (userId) => {
         userSockets[userId] = socket.id;
@@ -1023,6 +926,7 @@ io.on('connection', (socket) => {
             const authPath = path.join(AUTH_DIR, userId);
             if (fs.existsSync(authPath)) fs.removeSync(authPath);
             
+            // Delete Session from MongoDB
             await deleteSessionFromMongoDB(userId);
             
             delete sessions[userId];
@@ -1042,14 +946,14 @@ io.on('connection', (socket) => {
     });
 });
 
-// ============================================
-// START SERVER
-// ============================================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Auto-load sessions from Local / MongoDB on Server Start
     await loadExistingSessions();
     
+    // Anti-Sleep Mechanism
     const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
     if (APP_URL) {
         setInterval(async () => {
@@ -1059,18 +963,15 @@ server.listen(PORT, async () => {
             } catch (e) {
                 console.log("Anti-Sleep Ping: " + e.message);
             }
-        }, 5 * 60 * 1000);
+        }, 5 * 60 * 1000); // Ping every 5 minutes
     }
 });
 
-// ============================================
-// CHANNEL JID FUNCTIONS
-// ============================================
 function getChannelJid(channelId) {
-    const cleanId = channelId.replace(/[^0-9]/g, '');
-    return `${cleanId}@newsletter`;
+  const cleanId = channelId.replace(/[^0-9]/g, '');
+  return `${cleanId}@newsletter`;
 }
 
 function isValidChannelJid(jid) {
-    return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
-                                        }
+  return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
+    }
