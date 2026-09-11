@@ -65,7 +65,6 @@ const commands = {
     npm: require('./commands/npm'),
     pinterest: require('./commands/pinterest'),
     tempmail: require('./commands/tempmail')
-  
 };
 
 
@@ -469,69 +468,6 @@ class BotSession {
 
                         if (!this.isPublic && !isOwner) return;
 
-                        // ============================================
-                        // HANDLE BUTTON CLICKS AND LIST SELECTIONS
-                        // ============================================
-                        if (msg.message?.buttonsResponseMessage || msg.message?.listResponseMessage || msg.message?.templateButtonReplyMessage) {
-                            try {
-                                let selectedId;
-                                if (msg.message.buttonsResponseMessage) {
-                                    selectedId = msg.message.buttonsResponseMessage.selectedButtonId;
-                                } else if (msg.message.listResponseMessage) {
-                                    selectedId = msg.message.listResponseMessage.selectedRowId;
-                                } else if (msg.message.templateButtonReplyMessage) {
-                                    selectedId = msg.message.templateButtonReplyMessage.selectedId;
-                                }
-
-                                const chatId = msg.key.remoteJid;
-                                
-                                switch (selectedId) {
-                                    case 'menu_song':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎵 *Search for a song*\n\nPlease provide the song name:\n`.song [song name]`\n\nExample: `.song Shape of You`'
-                                        });
-                                        break;
-                                    case 'menu_video':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a video*\n\nPlease provide the video name:\n`.video [video name]`\n\nExample: `.video Funny Cats`'
-                                        });
-                                        break;
-                                    case 'menu_yt':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📥 *Download YouTube video*\n\nPlease provide the YouTube link:\n`.yt [YouTube URL]`\n\nExample: `.yt https://youtube.com/watch?v=xxx`'
-                                        });
-                                        break;
-                                    case 'menu_ai':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🤖 *Chat with AI*\n\nPlease provide your question:\n`.ai [your question]`\n\nExample: `.ai What is the capital of Sri Lanka?`'
-                                        });
-                                        break;
-                                    case 'menu_movie':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '🎬 *Search for a movie*\n\nPlease provide the movie name:\n`.movie [movie name]`\n\nExample: `.movie Deadpool 3`'
-                                        });
-                                        break;
-                                    case 'menu_help':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📚 *Help Menu*\n\nCommands:\n`.menu` - Full menu\n`.alive` - Check if bot is alive\n`.owner` - Contact owner\n`.ping` - Check bot latency\n\nNeed more help? Contact the owner!'
-                                        });
-                                        break;
-                                    case 'menu_full':
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '📋 *Full Menu*\n\nType `.menu` to see all commands\n\nOr visit:\nhttps://eva-mini.onrender.com'
-                                        });
-                                        break;
-                                    default:
-                                        await this.sock.sendMessage(chatId, {
-                                            text: '❌ *Unknown button!*\n\nPlease try again or use `.menu` for help.'
-                                        });
-                                }
-                            } catch (e) {
-                                console.error('Button response error:', e);
-                            }
-                            return;
-                        }
-
                         if (cmd.startsWith('.')) {
                             const commandName = cmd.slice(1).split(' ')[0];
                             (async () => {
@@ -548,7 +484,7 @@ class BotSession {
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("USER COMMANDS")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".autoreacts [on/off]")}\n` +
-                                                            `┃ ⋄ ${toBold(".antibug [on/off]")}\n` +
+                                                           `┃ ⋄ ${toBold(".antibug [on/off]")}\n` +
                                                            `┃ ⋄ ${toBold(".antilink [on/off/kick]")}\n` +
                                                            `┃ ⋄ ${toBold(".antidelete [on/off]")}\n` +
                                                            `┃ ⋄ ${toBold(".ai [on/off]")}\n` +
@@ -564,7 +500,6 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".tempmail")}\n` +
                                                            `┃ ⋄ ${toBold(".binlookup [6digits]")}\n` +
                                                            `┃ ⋄ ${toBold(".base64 [enc/dec] [text]")}\n` +
-                                                           `┃ ⋄ ${toBold(".buttonmenu")} - Interactive buttons\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("TOOLS")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".apk (name)")}\n` +
@@ -584,7 +519,6 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".movie (name)")}\n` +
                                                            `┃ ⋄ ${toBold(".broadcast [message]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                                          
                                                            `╭━━━〔 ${toBold("ADMIN")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".private")}\n` +
                                                            `┃ ⋄ ${toBold(".public")}\n` +
@@ -841,4 +775,4 @@ function getChannelJid(channelId) {
 
 function isValidChannelJid(jid) {
   return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
-                                }
+        }
