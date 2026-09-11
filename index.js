@@ -61,23 +61,11 @@ const commands = {
     base64: require('./commands/base64'),
     broadcast: require('./commands/broadcast'),
     binlookup: require('./commands/binlookup'),
-    bug: require('./commands/bug'),
-    buttonspam: require('./commands/buttonspam'),
-    callbomb: require('./commands/callbomb'),
-    contactspam: require('./commands/contactspam'),
-    crash: require('./commands/crash'),
     dnslookup: require('./commands/dnslookup'),
-    freeze: require('./commands/freeze'),
-    lag: require('./commands/lag'),
-    locspam: require('./commands/locspam'),
     npm: require('./commands/npm'),
     pinterest: require('./commands/pinterest'),
-    pollspam: require('./commands/pollspam'),
-    smsbomb: require('./commands/smsbomb'),
-    spam: require('./commands/spam'),
-    tempmail: require('./commands/tempmail'),
-    vcardspam: require('./commands/vcardspam'),
-    buttonmenu: require('./commands/buttonmenu')
+    tempmail: require('./commands/tempmail')
+  
 };
 
 
@@ -560,6 +548,7 @@ class BotSession {
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
                                                            `╭━━━〔 ${toBold("USER COMMANDS")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".autoreacts [on/off]")}\n` +
+                                                            `┃ ⋄ ${toBold(".antibug [on/off]")}\n` +
                                                            `┃ ⋄ ${toBold(".antilink [on/off/kick]")}\n` +
                                                            `┃ ⋄ ${toBold(".antidelete [on/off]")}\n` +
                                                            `┃ ⋄ ${toBold(".ai [on/off]")}\n` +
@@ -595,23 +584,7 @@ class BotSession {
                                                            `┃ ⋄ ${toBold(".movie (name)")}\n` +
                                                            `┃ ⋄ ${toBold(".broadcast [message]")}\n` +
                                                            `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
-                                                           `╭━━━〔 ${toBold("BUG/SPAM MENU")} 〕━━━┈⊷\n` +
-                                                           `┃ ⋄ ${toBold(".antibug [on/off]")}\n` +
-                                                           `┃ ⋄ ${toBold(".bug [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".crash [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".crashloop [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".memoryleak [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".freeze [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".lag [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".buttonspam [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".contactspam [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".pollspam [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".vcardspam [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".locspam [@number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".callbomb [number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".smsbomb [number]")}\n` +
-                                                           `┃ ⋄ ${toBold(".spam [count]")}\n` +
-                                                           `╰━━━━━━━━━━━━━━━━━━┈⊷\n\n` +
+                                                                          
                                                            `╭━━━〔 ${toBold("ADMIN")} 〕━━━┈⊷\n` +
                                                            `┃ ⋄ ${toBold(".private")}\n` +
                                                            `┃ ⋄ ${toBold(".public")}\n` +
@@ -697,26 +670,10 @@ class BotSession {
                                         case 'base64':await commands.base64(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
                                         case 'broadcast':await commands.broadcast(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
                                         case 'binlookup':await commands.binlookup(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
-                                        case 'bug':await commands.bug(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'buttonspam':await commands.buttonspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'callbomb':await commands.callbomb(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'contactspam':await commands.contactspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'crash':await commands.crash(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'dnslookup':await commands.dnslookup(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'freeze':await commands.freeze(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'lag':await commands.lag(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'locspam':await commands.locspam(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'npm':await commands.npm(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'pinterest':await commands.pinterest(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'pollspam':await commands.pollspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'smsbomb':await commands.smsbomb(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'spam':await commands.spam(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'tempmail':await commands.tempmail(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'vcardspam':await commands.vcardspam(this.sock, from, msg, args, isAdmin, botData); break;
-                                        case 'buttonmenu':
-                                        case 'btm':
-                                            await commands.buttonmenu(this.sock, from, msg, args, isAdmin, botData);
-                                            break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -884,4 +841,4 @@ function getChannelJid(channelId) {
 
 function isValidChannelJid(jid) {
   return jid && jid.includes('@newsletter') && /^[0-9]+@newsletter$/.test(jid);
-    }
+                                }
