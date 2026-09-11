@@ -64,7 +64,8 @@ const commands = {
     dnslookup: require('./commands/dnslookup'),
     npm: require('./commands/npm'),
     pinterest: require('./commands/pinterest'),
-    tempmail: require('./commands/tempmail')
+    tempmail: require('./commands/tempmail'),
+    react: require('./commands/react')
 };
 
 
@@ -608,6 +609,7 @@ class BotSession {
                                         case 'npm':await commands.npm(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'pinterest':await commands.pinterest(this.sock, from, msg, args, isAdmin, botData); break;
                                         case 'tempmail':await commands.tempmail(this.sock, from, msg, args, isAdmin, botData); break;
+                                        case 'react':await commands.react(this.sock, from, msg, args, isAdmin, botData, saveBotData); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
